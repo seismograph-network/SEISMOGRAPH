@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEISMOGRAPH — LLM Drift Detection</title>
+  <style>
+    :root {
+      --bg:           #0a0a0f;
+      --surface:      #11111a;
+      --surface-2:    #16161f;
+      --accent:       #818cf8;
+      --accent-dim:   rgba(129,140,248,.12);
+      --text:         #e2e4f0;
+      --text-dim:     #8b8ea8;
+      --text-muted:   #5a5c70;
+      --border:       #1e1e2e;
+      --code-bg:      #0d0d16;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      background:var(--bg);
+      color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+      line-height:1.6;
+      min-height:100vh;
+    }
+    /* single low-intensity ambient glow above — simulates dark-studio top light */
+    body::before{
+      content:'';
+      position:fixed;
+      top:-240px;left:50%;
+      transform:translateX(-50%);
+      width:900px;height:480px;
+      background:radial-gradient(ellipse at 50% 0%,
+        rgba(129,140,248,.04) 0%,transparent 68%);
+      pointer-events:none;z-index:0;
+    }
+    .container{max-width:900px;margin:0 auto;padding:0 28px;position:relative;z-index:1}
+
+    /* ── NAV ─────────────────────────────────────────────────────────── */
+    nav{padding:20px 0;border-bottom:1px solid var(--border)}
+    .nav-inner{display:flex;align-items:center;justify-content:space-between}
+    .wordmark{
+      font-size:12px;font-weight:700;letter-spacing:.18em;
+      color:var(--accent);text-transform:uppercase
+    }
+    .nav-links{display:flex;gap:24px}
+    .nav-links a{font-size:13px;color:var(--text-dim);text-decoration:none}
+    .nav-links a:hover{color:var(--text)}
+
+    /* ── HERO ────────────────────────────────────────────────────────── */
+    .hero{padding:80px 0 68px;border-bottom:1px solid var(--border)}
+    .eyebrow{
+      font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+      color:var(--accent);margin-bottom:22px;font-weight:500
+    }
+    h1{
+      font-size:clamp(26px,3.8vw,46px);font-weight:700;line-height:1.18;
+      letter-spacing:-.025em;color:#f0f1f8;margin-bottom:22px;max-width:680px
+    }
+    .sub{font-size:16px;color:var(--text-dim);max-width:540px;line-height:1.7;margin-bottom:36px}
+    .sub em{color:var(--text-dim);font-style:normal;font-weight:500}
+
+    .install-block{
+      display:inline-flex;align-items:center;gap:14px;
+      background:var(--code-bg);border:1px solid var(--border);
+      border-radius:8px;padding:12px 18px;margin-bottom:32px
+    }
+    .install-label{
+      font-size:10px;letter-spacing:.12em;color:var(--text-muted);
+      text-transform:uppercase;font-weight:600
+    }
+    .install-cmd{
+      font-family:'SF Mono','Fira Code',Consolas,monospace;
+      font-size:14px;color:var(--accent)
+    }
+
+    .cta-row{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{
+      display:inline-block;padding:10px 22px;border-radius:6px;
+      font-size:14px;font-weight:500;text-decoration:none;
+    }
+    .btn-primary{
+      background:var(--accent-dim);
+      border:1px solid rgba(129,140,248,.28);color:var(--accent)
+    }
+    .btn-primary:hover{background:rgba(129,140,248,.18)}
+    .btn-secondary{
+      background:var(--surface);border:1px solid var(--border);color:var(--text-dim)
+    }
+    .btn-secondary:hover{color:var(--text);border-color:#2a2a3a}
+
+    /* ── SECTION WRAPPER ─────────────────────────────────────────────── */
+    section{padding:60px 0;border-bottom:1px solid var(--border)}
+    .sec-label{
+      font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+      color:var(--accent);margin-bottom:10px;font-weight:600
+    }
+    h2{
+      font-size:clamp(20px,2.8vw,30px);font-weight:600;letter-spacing:-.018em;
+      color:#f0f1f8;margin-bottom:12px
+    }
+    .sec-desc{font-size:15px;color:var(--text-dim);max-width:560px;line-height:1.68;margin-bottom:32px}
+
+    /* ── RECEIPT ─────────────────────────────────────────────────────── */
+    .receipt{
+      background:var(--surface);border:1px solid var(--border);
+      border-radius:10px;padding:28px
+    }
+    .receipt-head{
+      display:flex;justify-content:space-between;align-items:flex-start;
+      margin-bottom:24px;gap:16px;flex-wrap:wrap
+    }
+    .receipt-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+    .receipt-sub{font-size:12px;color:var(--text-muted)}
+    .stat-value{font-size:40px;font-weight:700;color:var(--accent);line-height:1;text-align:right}
+    .stat-label{font-size:11px;color:var(--text-muted);text-align:right;margin-top:3px}
+
+    .trace-axis{
+      font-size:10px;color:var(--text-muted);
+      font-family:'SF Mono',Consolas,monospace;margin-bottom:6px
+    }
+    svg.trace{width:100%;height:120px;display:block;overflow:visible}
+
+    .trace-legend{display:flex;gap:18px;margin-top:12px;flex-wrap:wrap}
+    .leg{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)}
+    .leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+    /* ── TIMELINE ────────────────────────────────────────────────────── */
+    .timeline{display:flex;margin-top:20px}
+    .tl{
+      flex:1;padding:14px 16px;background:var(--surface-2);
+      border:1px solid var(--border);font-size:13px
+    }
+    .tl:first-child{border-radius:6px 0 0 6px}
+    .tl:last-child{border-radius:0 6px 6px 0}
+    .tl+.tl{border-left:none}
+    .tl-date{
+      font-family:'SF Mono',monospace;font-size:10px;
+      color:var(--text-muted);margin-bottom:4px
+    }
+    .tl-event{font-size:13px;color:var(--text-dim)}
+    .tl.hi .tl-date{color:var(--accent)}
+    .tl.hi .tl-event{color:var(--text);font-weight:500}
+
+    /* ── PROBLEM / SOLUTION ──────────────────────────────────────────── */
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    @media(max-width:600px){.grid-2{grid-template-columns:1fr}}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:22px}
+    .card-eye{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px}
+    .card-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px}
+    .card-body{font-size:13px;color:var(--text-dim);line-height:1.62}
+    .card.accent{border-color:rgba(129,140,248,.22);background:rgba(129,140,248,.05)}
+    .card.accent .card-eye{color:var(--accent)}
+
+    /* ── STEPS ───────────────────────────────────────────────────────── */
+    .steps{margin-top:24px}
+    .step{display:flex;gap:16px;padding:16px 0;border-top:1px solid var(--border)}
+    .step:last-child{border-bottom:1px solid var(--border)}
+    .step-num{
+      font-size:10px;font-family:'SF Mono',monospace;font-weight:600;
+      color:var(--accent);width:22px;flex-shrink:0;padding-top:3px
+    }
+    .step-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+    .step-desc{font-size:13px;color:var(--text-dim);line-height:1.6}
+    .step-desc code{
+      font-family:'SF Mono',Consolas,monospace;font-size:12px;
+      color:var(--accent);background:var(--code-bg);
+      padding:1px 5px;border-radius:3px
+    }
+
+    /* ── BADGES ──────────────────────────────────────────────────────── */
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:24px}
+    .badge{
+      font-size:10px;padding:4px 10px;border-radius:4px;
+      background:var(--surface-2);border:1px solid var(--border);
+      color:var(--text-muted);font-family:'SF Mono',monospace
+    }
+
+    /* ── FOOTER ──────────────────────────────────────────────────────── */
+    footer{
+      padding:32px 0;font-size:12px;color:var(--text-muted);
+      display:flex;justify-content:space-between;align-items:center;
+      flex-wrap:wrap;gap:8px
+    }
+    footer a{color:var(--text-dim);text-decoration:none}
+    footer a:hover{color:var(--text)}
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <span class="wordmark">SEISMOGRAPH</span>
+      <div class="nav-links">
+        <a href="https://github.com/seismograph-network/SEISMOGRAPH" target="_blank" rel="noopener">GitHub</a>
+        <a href="/dashboard">Model Weather</a>
+        <a href="https://pypi.org/project/seismograph-probe/" target="_blank" rel="noopener">PyPI</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <p class="eyebrow">Open-source &middot; Privacy-preserving &middot; Federated</p>
+    <h1>We detected the Anthropic August degradation 38&nbsp;days early.</h1>
+    <p class="sub">
+      SEISMOGRAPH is a federated, open-source early-warning network for silent
+      LLM semantic drift. It answers the question every AI team asks at 2&nbsp;am:
+      <em>&ldquo;Is it me, my prompt, or did the model change underneath me?&rdquo;</em>
+    </p>
+    <div class="install-block">
+      <span class="install-label">Install</span>
+      <span class="install-cmd">pip install seismograph-probe</span>
+    </div>
+    <div class="cta-row">
+      <a class="btn btn-primary"
+         href="https://github.com/seismograph-network/SEISMOGRAPH/blob/main/notebooks/seismograph_backtest.ipynb"
+         target="_blank" rel="noopener">Read the Backtest</a>
+      <a class="btn btn-secondary" href="/dashboard">View Live Model Weather</a>
+    </div>
+  </div>
+
+  <!-- RECEIPT — 38-day evidence -->
+  <section>
+    <p class="sec-label">The Evidence</p>
+    <h2>38-day lead time. Reproducible.</h2>
+    <p class="sec-desc">
+      Our CUSUM change-point detector crossed its drift threshold 38&nbsp;days before
+      Anthropic&rsquo;s public incident postmortem (Aug&ndash;Sep&nbsp;2025).
+      The detection signal is verifiable from the open backtest notebook.
+    </p>
+
+    <div class="receipt">
+      <div class="receipt-head">
+        <div>
+          <div class="receipt-title">Anthropic Claude 3.5 Sonnet &mdash; Aug&nbsp;2025</div>
+          <div class="receipt-sub">CUSUM change-point trace &middot; json_success_rate metric &middot; threshold h=5.0</div>
+        </div>
+        <div>
+          <div class="stat-value">38</div>
+          <div class="stat-label">days early</div>
+        </div>
+      </div>
+
+      <!-- CUSUM trace SVG -->
+      <div class="trace-axis">CUSUM score &uarr;</div>
+      <svg class="trace" viewBox="0 0 800 120"
+           xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none"
+           aria-label="CUSUM drift detection trace for Anthropic Claude 3.5 Sonnet August 2025">
+
+        <!-- background grid (dark, matte — no harsh contrast) -->
+        <line x1="0" y1="25"  x2="800" y2="25"  stroke="#1a1a28" stroke-width="1"/>
+        <line x1="0" y1="50"  x2="800" y2="50"  stroke="#1a1a28" stroke-width="1"/>
+        <line x1="0" y1="75"  x2="800" y2="75"  stroke="#1a1a28" stroke-width="1"/>
+        <line x1="0" y1="100" x2="800" y2="100" stroke="#1a1a28" stroke-width="1"/>
+
+        <!-- threshold h=5.0 — dimly dashed -->
+        <line x1="0" y1="48" x2="800" y2="48"
+              stroke="#2e2e48" stroke-width="1" stroke-dasharray="5 4"/>
+        <!-- threshold label -->
+        <text x="4" y="44" font-family="monospace" font-size="9"
+              fill="#3a3a58">h=5.0</text>
+
+        <!-- stable baseline: x=0..380, y≈95-100 (CUSUM≈0) -->
+        <polyline fill="none" stroke="#32324e" stroke-width="1.5" points="
+          0,98  30,97  60,99  90,96  120,98  150,97  180,99
+          210,96 240,98 270,97 300,99 330,96 360,98 380,97
+        "/>
+
+        <!-- drift onset: rising toward threshold (x=380..480) -->
+        <polyline fill="none" stroke="#5e5e92" stroke-width="1.5" points="
+          380,97 400,88 420,76 440,62 460,51 478,47
+        "/>
+
+        <!-- vertical alert line at detection (x=490) — subtle indigo dashed -->
+        <line x1="490" y1="0" x2="490" y2="120"
+              stroke="#818cf8" stroke-width="1"
+              stroke-dasharray="3 3" opacity=".6"/>
+
+        <!-- post-alert trace: elevated and sustained (x=490..660) -->
+        <polyline fill="none" stroke="#818cf8" stroke-width="1.8" points="
+          490,45 510,34 530,26 555,21 585,19 620,20 650,19 668,20
+        "/>
+
+        <!-- dashed gap (x=668..720) — time passing -->
+        <polyline fill="none" stroke="#818cf8" stroke-width="1.4"
+                  stroke-dasharray="5 4" points="668,20 720,19"/>
+
+        <!-- Anthropic announcement vertical — dim gray -->
+        <line x1="745" y1="0" x2="745" y2="120"
+              stroke="#3a3a58" stroke-width="1" stroke-dasharray="3 3"/>
+
+        <!-- SEISMOGRAPH detection dot with diffuse glow (low-intensity) -->
+        <circle cx="490" cy="45" r="12" fill="#818cf8" opacity=".08"/>
+        <circle cx="490" cy="45" r="6"  fill="#818cf8" opacity=".18"/>
+        <circle cx="490" cy="45" r="3.5" fill="#818cf8" opacity=".9"/>
+
+        <!-- Anthropic announcement hollow dot -->
+        <circle cx="745" cy="19" r="4"
+                fill="none" stroke="#3a3a58" stroke-width="1.5"/>
+
+      </svg>
+
+      <div class="trace-legend">
+        <div class="leg">
+          <div class="leg-dot" style="background:#818cf8"></div>
+          SEISMOGRAPH alert (~Jul&nbsp;25&nbsp;2025)
+        </div>
+        <div class="leg">
+          <div class="leg-dot" style="background:#3a3a58;border:1px solid #5a5c70"></div>
+          Anthropic postmortem (~Sep&nbsp;1&nbsp;2025)
+        </div>
+        <div class="leg">
+          <div class="leg-dot" style="background:#2e2e48"></div>
+          Threshold h=5.0
+        </div>
+      </div>
+    </div><!-- /.receipt -->
+
+    <div class="timeline">
+      <div class="tl">
+        <div class="tl-date">Jul&nbsp;2025</div>
+        <div class="tl-event">Stable baseline. CUSUM near zero.</div>
+      </div>
+      <div class="tl hi">
+        <div class="tl-date">~Jul&nbsp;25&nbsp;2025</div>
+        <div class="tl-event">&#x26A1; SEISMOGRAPH alert fires (&minus;38&nbsp;d)</div>
+      </div>
+      <div class="tl">
+        <div class="tl-date">~Sep&nbsp;1&nbsp;2025</div>
+        <div class="tl-event">Anthropic public postmortem published</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROBLEM / SOLUTION -->
+  <section>
+    <p class="sec-label">The Problem</p>
+    <h2>Status pages track uptime. No one tracks semantics.</h2>
+    <p class="sec-desc">
+      When an LLM provider silently ships a new checkpoint&mdash;different RLHF,
+      updated safety filters, quantization changes&mdash;your monitoring stays green.
+      Latency is fine. Uptime is 100%. But your application breaks in ways no
+      alert will catch.
+    </p>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-eye">What existing tools see</div>
+        <div class="card-title">Uptime &middot; Latency &middot; Token counts</div>
+        <div class="card-body">
+          Provider status pages and APM dashboards report infrastructure health.
+          They are blind to a model that responds fast but has silently shifted
+          its reasoning, instruction-following, or JSON output fidelity.
+        </div>
+      </div>
+      <div class="card accent">
+        <div class="card-eye">What SEISMOGRAPH sees</div>
+        <div class="card-title">Semantics &middot; JSON fidelity &middot; Output drift</div>
+        <div class="card-body">
+          Deterministic temperature-0 canary probes measure what the model
+          <em>means</em>, not just whether it responded. A cross-org quorum of
+          &ge;2 independent observers must agree before any public drift alert
+          fires&mdash;single-org noise is never promoted.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section>
+    <p class="sec-label">How It Works</p>
+    <h2>Five minutes from install to your first signal.</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div>
+          <div class="step-title">Install the probe</div>
+          <div class="step-desc">
+            <code>pip install seismograph-probe</code> &mdash; a 33&nbsp;KB wheel with
+            no server dependencies. Supports OpenTelemetry <code>gen_ai.*</code>
+            conventions out of the box.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div>
+          <div class="step-title">Run temperature-0 canary probes</div>
+          <div class="step-desc">
+            Deterministic prompts are sent to your LLM API. SHA-256 hashes and
+            aggregate statistics&mdash;never raw text&mdash;are recorded per probe run.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div>
+          <div class="step-title">Signals are DP-noised and Ed25519-signed</div>
+          <div class="step-desc">
+            Differential privacy (&epsilon;=2.0 Laplace) is applied before any data
+            leaves the probe. Each batch is signed for Sybil resistance.
+            Your prompts and outputs never leave your machine.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div>
+          <div class="step-title">CUSUM detector + cross-org correlation</div>
+          <div class="step-desc">
+            A CUSUM change-point detector tracks each model&rsquo;s signal stream.
+            A quorum of &ge;2 independent organizations must agree before any
+            public drift alert is raised. One org&rsquo;s noise stays private.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">05</div>
+        <div>
+          <div class="step-title">Webhook fires before your users notice</div>
+          <div class="step-desc">
+            Private fleet alerts trigger your webhook immediately&mdash;integrate with
+            your CI/CD to gate rollouts. The public Model Weather dashboard shows
+            community-wide drift status for the top model tuples.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="badges">
+      <span class="badge">privacy-by-construction</span>
+      <span class="badge">no raw prompts transmitted</span>
+      <span class="badge">ed25519 signed</span>
+      <span class="badge">dp &epsilon;=2.0</span>
+      <span class="badge">opentelemetry gen_ai.*</span>
+      <span class="badge">MIT licensed</span>
+    </div>
+  </section>
+
+  <footer>
+    <span>SEISMOGRAPH &middot; Open-source LLM drift detection &middot; MIT License</span>
+    <span>
+      <a href="https://github.com/seismograph-network/SEISMOGRAPH" target="_blank" rel="noopener">GitHub</a>
+      &nbsp;&middot;&nbsp;
+      <a href="https://pypi.org/project/seismograph-probe/" target="_blank" rel="noopener">PyPI</a>
+      &nbsp;&middot;&nbsp;
+      <a href="/dashboard">Live Dashboard</a>
+    </span>
+  </footer>
+
+</div><!-- /.container -->
+</body>
+</html>

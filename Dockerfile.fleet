@@ -1,0 +1,38 @@
+# Dockerfile.fleet
+# =================
+# Minimal runtime image for the SEISMOGRAPH first-party probe fleet.
+#
+# This is intentionally separate from the main Dockerfile, which builds
+# the gateway/engine stack and explicitly excludes probe/ (AD-CONTAINER-003:
+# the probe is a client library, not a server component).
+#
+# The fleet container only needs:
+#   - probe/ (the ProbeSDK and supporting modules)
+#   - scripts/first_party_fleet.py (the runner)
+#   - httpx, cryptography (probe runtime deps)
+#
+# Non-root execution: runs as uid 1001 (seismograph) for security.
+# Key directory /var/seismograph is created and chowned at build time;
+# the fleet_key volume is mounted there at runtime so the Ed25519
+# keypair survives container restarts.
+
+FROM python:3.11-slim
+
+# Install runtime deps only -- no dev tools, no build cache
+RUN pip install --no-cache-dir httpx>=0.24 cryptography>=41.0
+
+# Non-root user (uid 1001)
+RUN useradd --uid 1001 --create-home --shell /bin/bash seismograph
+
+# Copy probe SDK and fleet runner
+WORKDIR /app
+COPY probe/ probe/
+COPY scripts/first_party_fleet.py scripts/first_party_fleet.py
+
+# Key persistence directory -- mounted as a named volume at runtime
+RUN mkdir -p /var/seismograph && chown 1001:1001 /var/seismograph
+
+USER seismograph
+
+# -u: unbuffered stdout/stderr so logs appear immediately in docker logs
+CMD ["python3", "-u", "scripts/first_party_fleet.py"]

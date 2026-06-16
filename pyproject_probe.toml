@@ -1,0 +1,103 @@
+# pyproject_probe.toml
+# Build configuration for the seismograph-probe PyPI distribution.
+#
+# This file is SEPARATE from the monorepo pyproject.toml (which covers
+# the full server stack).  scripts/build_probe.sh temporarily swaps this
+# file in as pyproject.toml, builds the wheel, then restores the original.
+#
+# Distribution name : seismograph-probe
+# Python import name: probe   (e.g. from probe.sdk import ProbeSDK)
+# Version           : 1.0.0
+#
+# Only the probe/ directory is packaged.  engine/, gateway/, dashboard/,
+# and all test files are excluded.
+#
+# --- Build system -------------------------------------------------------
+
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+# --- Project metadata ---------------------------------------------------
+
+[project]
+name = "seismograph-probe"
+version = "1.0.0"
+description = "Federated early-warning probe for silent LLM degradation."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "Tatiana & Yehor" },
+]
+keywords = [
+    "llm",
+    "observability",
+    "drift-detection",
+    "opentelemetry",
+    "privacy",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Monitoring",
+]
+requires-python = ">=3.11"
+
+# Core runtime dependencies (absolute minimum to send a signal).
+# httpx     : async HTTP client for flushing SignalBatch to the gateway.
+# cryptography: Ed25519 keypair generation and per-batch signing.
+dependencies = [
+    "httpx>=0.24",
+    "cryptography>=41.0",
+]
+
+# --- Optional extras ----------------------------------------------------
+
+[project.optional-dependencies]
+# OTel adapter: tap gen_ai.* spans from an existing TracerProvider.
+otel = [
+    "opentelemetry-sdk>=1.20",
+]
+# Full install: all optional adapters.
+all = [
+    "opentelemetry-sdk>=1.20",
+]
+
+# --- Project URLs -------------------------------------------------------
+
+[project.urls]
+Homepage = "https://github.com/seismograph/seismograph"
+Documentation = "https://github.com/seismograph/seismograph#readme"
+"Bug Tracker" = "https://github.com/seismograph/seismograph/issues"
+
+# --- Hatchling build configuration -------------------------------------
+#
+# Only include the probe/ package.  Exclude everything else:
+#   engine/, gateway/, dashboard/, tests/, scripts/, notebooks/,
+#   data/, memory/, Dockerfile, docker-compose.yml, etc.
+
+[tool.hatch.build.targets.wheel]
+packages = ["probe"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "probe/",
+    "README.md",
+    "LICENSE",
+]
+exclude = [
+    "engine/",
+    "gateway/",
+    "dashboard/",
+    "tests/",
+    "scripts/",
+    "notebooks/",
+    "data/",
+    "memory/",
+    "*.log",
+]

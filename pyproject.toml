@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "seismograph"
+version = "0.0.1"
+requires-python = ">=3.11"
+description = "Federated, privacy-preserving LLM semantic drift detection"
+dependencies = [
+    "clickhouse-connect>=0.7",
+    "cryptography>=41.0",
+    "opentelemetry-sdk>=1.20",
+    "redis>=4.0",
+    "httpx>=0.26",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Add project root to sys.path so gateway/engine/probe packages resolve.
+pythonpath = ["."]
+# Suppress Starlette httpx/httpx2 cosmetic warning; does not affect behaviour.
+filterwarnings = ["ignore::DeprecationWarning"]
+# D12: pytest cache plugin crashes on Windows NTFS overlay (PermissionError on
+# rmtree of pytest-cache-files-*). Disable permanently; no functional impact.
+addopts = "-p no:cacheprovider"
+
+[tool.ruff]
+line-length = 79
+target-version = "py311"
+# Source directories
+src = ["probe", "engine", "gateway", "dashboard", "tests"]
+
+[tool.ruff.lint]
+# E/W: pycodestyle errors/warnings
+# F: Pyflakes
+# I: isort
+# UP: pyupgrade (Python 3.11 idioms)
+# B: flake8-bugbear
+select = ["E", "W", "F", "I", "UP", "B"]
+# Ignore E501 inside comments/docstrings -- we enforce 79 cols on code lines
+# but allow slightly longer SG-TRACE annotation lines inside docstrings.
+# UP017: datetime.UTC alias requires Python 3.11 runtime;
+# suppress so sandbox (3.10) can execute tests
+ignore = ["UP017"]
+
+[tool.ruff.lint.per-file-ignores]
+# Allow long lines ONLY inside comment-only annotation blocks
+"**/__init__.py" = []
+
+[tool.ruff.format]
+# Black-compatible formatting
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
