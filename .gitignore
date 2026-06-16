@@ -1,3 +1,31 @@
 
 # SEISMOGRAPH probe identity file (Ed25519 private key -- never commit)
 .seismograph_id
+
+# Runtime state
+.seismograph_dp.json
+kernel.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Database / SQLite
+data/*.db
+data/*.db-journal
+data/*.db-shm
+data/*.db-wal
+
+# Env
+.env
+
+# Scripts scratch
+scripts/test_write
