@@ -212,7 +212,7 @@ tests/
 ## Test suite
 
 ```
-23 passed, 0 failed
+100 passed, 0 failed
 ruff: 0 violations across all Python files
 ```
 
