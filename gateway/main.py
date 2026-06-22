@@ -768,6 +768,34 @@ async def ingest_signals(
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# GET /v1/weather
+# ---------------------------------------------------------------------------
+
+
+@app.get("/v1/weather", status_code=200)
+async def model_weather(
+    request: Request,
+) -> list[ModelWeatherResponse]:
+    """Return current drift-weather for all known model_tuples.
+
+    No authentication required -- weather data is aggregated and
+    anonymised (no raw prompts, no client identifiers).
+
+    Status DRIFTING requires a PublicDriftAlert (quorum-verified) within
+    the last 24h.  Private fleet alerts are not reflected here.
+
+    #SG-TRACE: REQ-GW-023
+    #   | assumption: get_all_model_tuples() is cheap for Phase 2
+    #     cardinality; no pagination required
+    #   | test: test_weather_endpoint_empty_returns_200
+    """
+    repo: BaseRepository = request.app.state.repo
+    return [
+        _compute_model_weather(repo, mt) for mt in repo.get_all_model_tuples()
+    ]
+
+
 @app.get("/v1/alerts/{alert_id}/export", status_code=200)
 async def export_audit_report(alert_id: int, request: Request) -> JSONResponse:
     """Return a SOC 2 audit-grade JSON export for a recorded drift alert.
