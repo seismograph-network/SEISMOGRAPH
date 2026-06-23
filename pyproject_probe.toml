@@ -27,7 +27,7 @@ description = "Federated early-warning probe for silent LLM degradation."
 readme = "README.md"
 license = { text = "Apache-2.0" }
 authors = [
-    { name = "Tatiana & Yehor" },
+    { name = "Tatiana Radchenko", email = "tatyan.radchenko@gmail.com" },
 ]
 keywords = [
     "llm",
@@ -71,9 +71,9 @@ all = [
 # --- Project URLs -------------------------------------------------------
 
 [project.urls]
-Homepage = "https://github.com/seismograph/seismograph"
-Documentation = "https://github.com/seismograph/seismograph#readme"
-"Bug Tracker" = "https://github.com/seismograph/seismograph/issues"
+Homepage = "https://github.com/Tania-coder/SEISMOGRAPH"
+Documentation = "https://github.com/Tania-coder/SEISMOGRAPH#readme"
+"Bug Tracker" = "https://github.com/Tania-coder/SEISMOGRAPH/issues"
 
 # --- Hatchling build configuration -------------------------------------
 #
