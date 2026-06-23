@@ -1,6 +1,16 @@
 # SEISMOGRAPH
 
+[![PyPI](https://img.shields.io/pypi/v/seismograph-probe.svg)](https://pypi.org/project/seismograph-probe/)
+[![Python](https://img.shields.io/pypi/pyversions/seismograph-probe.svg)](https://pypi.org/project/seismograph-probe/)
+[![Tests](https://img.shields.io/badge/tests-103%20passing-brightgreen.svg)](#test-suite)
+[![Lint](https://img.shields.io/badge/ruff-0%20violations-brightgreen.svg)](https://github.com/astral-sh/ruff)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](#license)
+
 **Created by [Tatiana Radchenko](https://github.com/Tania-coder)**
+
+```bash
+pip install seismograph-probe   # the probe SDK — Python 3.11+
+```
 
 **A federated, privacy-preserving early-warning network for silent LLM API drift.**
 
@@ -135,10 +145,18 @@ telemetry_signals    -- raw ingested batches (DP-noised metrics only)
 
 ## Quickstart
 
+**Use just the probe** (publish signals to a gateway):
+
+```bash
+pip install seismograph-probe   # Python 3.11+
+```
+
+**Run the full stack from source** (gateway + dashboard + tests):
+
 **Requirements:** Python 3.10+, pip
 
 ```bash
-git clone <repo>
+git clone https://github.com/Tania-coder/SEISMOGRAPH.git
 cd SEISMOGRAPH
 pip install -e ".[dev]"
 ```
@@ -150,7 +168,7 @@ uvicorn gateway.main:app --host 0.0.0.0 --port 8000 --reload
 
 **Browser -- model weather dashboard:**
 ```
-http://localhost:8000
+http://localhost:8000/dashboard
 ```
 
 Polls `GET /v1/weather` every 60 seconds. Shows STABLE / DRIFTING per model
@@ -214,7 +232,7 @@ tests/
 ## Test suite
 
 ```
-100 passed, 0 failed
+103 passed, 0 failed
 ruff: 0 violations across all Python files
 ```
 
