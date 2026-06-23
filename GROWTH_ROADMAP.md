@@ -1,6 +1,6 @@
 # SEISMOGRAPH — Post-MVP Execution & Growth Roadmap
 
-**Prepared for:** Tatiana & Yehor
+**Prepared for:** Tatiana Radchenko
 **Date:** 2026-06-12
 **Posture:** Two people, no brand, no SOC2, one validated thesis (38-day backtest lead), working MVP (91/91 tests, multi-tenant, Ed25519, DP, OTel/MCP adapters, containerized).
 **Doctrine:** Consulting pays the bills. Open source builds the network. The network builds the moat. In that order.
@@ -152,14 +152,14 @@ This is the core growth tactic. Drift incidents are your only true marketing eve
 
 ---
 
-## 6. Immediate Next Actions (this week, two people)
+## 6. Immediate Next Actions (this week)
 
-1. **Yehor:** harden `make backtest` reproducibility (clean-machine test), add 1–2 additional public-incident backtests.
-2. **Tatiana:** draft the launch post, including the D9 "how we almost fooled ourselves" section and the synthetic-data disclosure.
-3. **Both:** stand up first-party probes on top 10 tuples; verify daily cost < $0.10/probe (existing cap); ToS check per provider, documented.
-4. **Yehor:** landing page per §1.4 spec (#0a0a0f background, soft diffuse dark-studio lighting, indigo trace glow, full-bleed, no Polaroid-style white borders/frames, no video).
-5. **Tatiana:** hash-commit the methodology pre-registration (reuse the canary suite content-addressing path).
-6. **Both:** set up the eruption-watch automation (§2.2) — it must be live before the launch post, because launch day *is* your first ambulance.
+1. Harden `make backtest` reproducibility (clean-machine test), add 1–2 additional public-incident backtests.
+2. Draft the launch post, including the D9 "how we almost fooled ourselves" section and the synthetic-data disclosure.
+3. Stand up first-party probes on top 10 tuples; verify daily cost < $0.10/probe (existing cap); ToS check per provider, documented.
+4. Landing page per §1.4 spec (#0a0a0f background, soft diffuse dark-studio lighting, indigo trace glow, full-bleed, no Polaroid-style white borders/frames, no video).
+5. Hash-commit the methodology pre-registration (reuse the canary suite content-addressing path).
+6. Set up the eruption-watch automation (§2.2) — it must be live before the launch post, because launch day *is* your first ambulance.
 
 ---
 
