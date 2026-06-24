@@ -1,0 +1,40 @@
+name: keep-demo-warm
+
+# Keeps the free Render demo instance awake so the public dashboard link
+# (shared in launch posts) loads instantly instead of cold-starting.
+# Render free instances sleep after ~15 min idle; this pings the public
+# /v1/weather endpoint every ~10 min to stay inside that window.
+#
+# Notes:
+#   - GitHub schedules are best-effort and can run a few minutes late;
+#     a 10-min cadence comfortably covers Render's 15-min idle timeout.
+#   - GitHub auto-disables scheduled workflows after 60 days with no
+#     repo activity (not a concern for an active project).
+#   - Run it on demand any time from the Actions tab (workflow_dispatch).
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # every 10 minutes (UTC)
+  workflow_dispatch: {}
+
+# Avoid piling up runs if one is slow.
+concurrency:
+  group: keep-warm
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping live dashboard
+        run: |
+          code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 90 \
+            https://seismograph-weather.onrender.com/v1/weather || echo "000")
+          echo "GET /v1/weather -> HTTP $code"
+          # Don't fail the workflow on a transient wake-up timeout.
+          if [ "$code" = "200" ]; then
+            echo "Demo is warm."
+          else
+            echo "Non-200 (likely a cold wake-up); will retry next cycle."
+          fi
