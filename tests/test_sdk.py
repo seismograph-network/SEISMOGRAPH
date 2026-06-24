@@ -42,7 +42,7 @@ from unittest.mock import MagicMock
 import pytest
 from gateway.schema import InboundSignalBatch
 from probe.crypto import KeyManager
-from probe.sdk import ProbeConfig, ProbeSDK
+from probe.sdk import FLUSH_EPSILON, ProbeConfig, ProbeSDK
 
 # ---------------------------------------------------------------------------
 # Helpers
