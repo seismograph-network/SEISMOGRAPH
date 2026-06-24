@@ -5,12 +5,15 @@
 [![Tests](https://img.shields.io/badge/tests-103%20passing-brightgreen.svg)](#test-suite)
 [![Lint](https://img.shields.io/badge/ruff-0%20violations-brightgreen.svg)](https://github.com/astral-sh/ruff)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](#license)
+[![Live Demo](https://img.shields.io/badge/live%20demo-Model%20Weather-8A2BE2.svg)](https://seismograph-weather.onrender.com/dashboard)
 
 **Created by [Tatiana Radchenko](https://github.com/Tania-coder)**
 
 ```bash
 pip install seismograph-probe   # the probe SDK — Python 3.11+
 ```
+
+**▶ Live dashboard:** **[seismograph-weather.onrender.com/dashboard](https://seismograph-weather.onrender.com/dashboard)** — real drift-weather for 4 production models, refreshed live. _(Free host; first load may take ~30s if the instance is asleep.)_
 
 **A federated, privacy-preserving early-warning network for silent LLM API drift.**
 
