@@ -78,6 +78,7 @@ from typing import NamedTuple
 import httpx
 from probe.canary import SUITE_VERSION
 from probe.crypto import KeyManager
+from probe.privacy import recommended_flush_interval_seconds
 from probe.sdk import FLUSH_EPSILON, ProbeConfig, ProbeSDK
 
 # ---------------------------------------------------------------------------
@@ -116,6 +117,22 @@ PROBE_INTERVAL_SECONDS: int = int(
 # Default 10.0 matches the SDK default (5 flushes/day) and is unchanged.
 DAILY_EPSILON_BUDGET: float = float(
     os.getenv("SEISMOGRAPH_DAILY_EPSILON_BUDGET", "10.0")
+)
+
+# Transmission pacing (P2-012): the fleet collects every PROBE_INTERVAL_SECONDS
+# but only *transmits* (spends epsilon) at most once per this interval. Between
+# transmissions, ProbeSDK keeps accumulating results in its Aggregator, so a
+# short collection interval no longer burns the daily DP budget in the first
+# few rounds. Derived from the budget so it is always budget-safe; override
+# with SEISMOGRAPH_MIN_FLUSH_INTERVAL_SECONDS if you need a specific cadence.
+_DEFAULT_MIN_FLUSH_INTERVAL: float = recommended_flush_interval_seconds(
+    DAILY_EPSILON_BUDGET, FLUSH_EPSILON
+)
+MIN_FLUSH_INTERVAL_SECONDS: float = float(
+    os.getenv(
+        "SEISMOGRAPH_MIN_FLUSH_INTERVAL_SECONDS",
+        str(_DEFAULT_MIN_FLUSH_INTERVAL),
+    )
 )
 
 # Deterministic canary prompt (temperature=0, max_tokens=20).
@@ -483,6 +500,7 @@ def main() -> None:
             suite_version_hash=SUITE_VERSION_HASH,
             gateway_endpoint=GATEWAY_URL,
             daily_epsilon_budget=DAILY_EPSILON_BUDGET,
+            min_flush_interval_seconds=MIN_FLUSH_INTERVAL_SECONDS,
         )
         sdk = ProbeSDK(config=config, _key_manager=key_manager)
         fleet.append(FleetEntry(model_tuple=model_tuple, sdk=sdk, mock=mock))
@@ -497,35 +515,29 @@ def main() -> None:
         GATEWAY_URL,
     )
 
-    # Cadence sanity check: the fleet flushes once per model per round, so
-    # each model spends FLUSH_EPSILON every PROBE_INTERVAL_SECONDS.  If the
-    # configured interval implies more flushes/day than the DP budget
-    # permits, the probe will exhaust its budget early and sleep
-    # (budget_exceeded) for the rest of the 24-hour window -- which looks
-    # like "the probe stopped collecting data".  Surface this up front.
+    # Cadence note (P2-012): collection and transmission are now decoupled.
+    # The fleet collects every PROBE_INTERVAL_SECONDS, but each ProbeSDK only
+    # *transmits* (spends FLUSH_EPSILON) at most once per
+    # MIN_FLUSH_INTERVAL_SECONDS; intervening rounds accumulate in the
+    # Aggregator and merge into the next DP-noised batch. Because the pacing
+    # interval is derived from the budget, the probe transmits continuously
+    # within budget regardless of how short the collection interval is --
+    # the old "exhaust budget then sleep" failure mode no longer occurs.
     # #SG-TRACE: REQ-FLEET-010
-    #   | assumption: one flush per model per round; budget is per-model
-    #   | test: manual -- set a short interval, observe the startup warning
+    #   | assumption: transmission pacing keeps spend within the daily
+    #     budget while collection cadence stays independent
+    #   | test: test_flush_throttle_accumulates_within_interval
     max_flushes_per_day = int(DAILY_EPSILON_BUDGET // FLUSH_EPSILON)
-    if PROBE_INTERVAL_SECONDS > 0:
-        implied_flushes_per_day = 86400 // PROBE_INTERVAL_SECONDS
-        if implied_flushes_per_day > max_flushes_per_day:
-            budget_window_seconds = max_flushes_per_day * PROBE_INTERVAL_SECONDS
-            logger.warning(
-                "Cadence exceeds privacy budget: interval=%ds implies ~%d "
-                "flushes/day, but DP budget=%.1f allows only %d "
-                "(FLUSH_EPSILON=%.1f). The probe will collect data for the "
-                "first ~%ds of each 24h window, then sleep "
-                "(budget_exceeded). To collect continuously, raise "
-                "SEISMOGRAPH_DAILY_EPSILON_BUDGET or increase "
-                "PROBE_INTERVAL_SECONDS.",
-                PROBE_INTERVAL_SECONDS,
-                implied_flushes_per_day,
-                DAILY_EPSILON_BUDGET,
-                max_flushes_per_day,
-                FLUSH_EPSILON,
-                budget_window_seconds,
-            )
+    logger.info(
+        "Cadence | collect every %ds, transmit at most every %.0fs "
+        "(~%d transmissions/day; DP budget=%.1f, FLUSH_EPSILON=%.1f). "
+        "Rounds between transmissions accumulate into the next batch.",
+        PROBE_INTERVAL_SECONDS,
+        MIN_FLUSH_INTERVAL_SECONDS,
+        max_flushes_per_day,
+        DAILY_EPSILON_BUDGET,
+        FLUSH_EPSILON,
+    )
 
     # ------------------------------------------------------------------
     # Probe loop

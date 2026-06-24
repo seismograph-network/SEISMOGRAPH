@@ -27,6 +27,14 @@ Privacy budget (P2-004):
   - Sequential composition: epsilon_total = sum(epsilon per flush).
     With 5 flushes * 2.0 = 10.0 epsilon/day at the default budget.
 
+Collection vs transmission cadence (P2-012):
+  - Collection (Aggregator.add_result) may run as often as desired; the
+    Aggregator accumulates CanaryResults until a flush consumes them.
+  - Transmission (flush) is what spends epsilon. To avoid burning the
+    daily budget in the first few rounds, transmissions are paced at
+    recommended_flush_interval_seconds(); intervening collection rounds
+    simply accumulate into the next DP-noised SignalBatch.
+
 #SG-TRACE: REQ-PRIV-001
 #   | assumption: SignalBatch is the sole permitted outbound type
 #   | test: test_signal_batch_is_only_outbound_type
@@ -282,6 +290,58 @@ class DPAccountant:
             self._persist()
             return True
         return False
+
+
+# ---------------------------------------------------------------------------
+# Flush-cadence pacing (decouples collection cadence from transmission)
+# ---------------------------------------------------------------------------
+
+
+def recommended_flush_interval_seconds(
+    daily_budget: float,
+    flush_epsilon: float = EPSILON,
+    window_seconds: float = 86_400.0,
+) -> float:
+    """Minimum seconds between flushes to spread the daily epsilon budget
+    evenly across a 24-hour window.
+
+    A probe may *collect* canary results as often as it likes -- the
+    Aggregator accumulates them between flushes -- but each *flush*
+    (transmission) spends ``flush_epsilon`` from the DPAccountant.  Without
+    pacing, a short collection interval burns the whole daily budget in the
+    first few rounds and the probe then sleeps (PrivacyBudgetExceededError)
+    for the rest of the window.  Pacing flushes at this interval keeps the
+    probe transmitting continuously, within budget, by batching several
+    collection rounds into one DP-noised SignalBatch.
+
+    Parameters
+    ----------
+    daily_budget:
+        Total epsilon allowed per 24-hour window (DPAccountant ceiling).
+    flush_epsilon:
+        Epsilon spent per transmission.  Defaults to the module EPSILON.
+    window_seconds:
+        Length of the budget window in seconds.  Defaults to 24 hours.
+
+    Returns
+    -------
+    float
+        Seconds between transmissions.  With daily_budget=10.0 and
+        flush_epsilon=2.0 this is 86400 / 5 = 17280s (4.8h).
+
+    #SG-TRACE: REQ-PRIV-012
+    #   | assumption: collection and transmission cadence are decoupled;
+    #     the Aggregator accumulates results across rounds between flushes,
+    #     so spacing transmissions never drops collected data
+    #   | test: test_recommended_flush_interval_seconds
+    """
+    if daily_budget <= 0 or flush_epsilon <= 0:
+        raise ValueError(
+            "daily_budget and flush_epsilon must be positive; "
+            f"got daily_budget={daily_budget}, flush_epsilon={flush_epsilon}"
+        )
+    max_flushes = max(1, int(daily_budget // flush_epsilon))
+    return window_seconds / max_flushes
 
 
 # ---------------------------------------------------------------------------

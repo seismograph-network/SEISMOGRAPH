@@ -43,7 +43,11 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
 import pytest
-from probe.privacy import DPAccountant, PrivacyBudgetExceededError
+from probe.privacy import (
+    DPAccountant,
+    PrivacyBudgetExceededError,
+    recommended_flush_interval_seconds,
+)
 from probe.sdk import FLUSH_EPSILON, ProbeConfig, ProbeSDK
 
 # ---------------------------------------------------------------------------
@@ -447,3 +451,37 @@ def test_dp_accountant_persistent_budget_corrupt_file(
         "DP-PERSIST-ADV FAIL: corrupt file must not raise; "
         f"got current_spend={acct.current_spend}"
     )
+
+
+# ---------------------------------------------------------------------------
+# DP-PACE -- transmission pacing helper (P2-012)
+# ---------------------------------------------------------------------------
+
+
+def test_recommended_flush_interval_seconds() -> None:
+    """DP-PACE: pacing interval = window / floor(budget / flush_epsilon).
+
+    Confirms the helper spreads the daily budget across the window and
+    guards invalid inputs.
+
+    #SG-TRACE: REQ-PRIV-012 | test: test_recommended_flush_interval_seconds
+    """
+    # Default budget: 10.0 / 2.0 = 5 flushes -> 86400 / 5 = 17280s (4.8h).
+    assert recommended_flush_interval_seconds(10.0, 2.0) == pytest.approx(17280.0)
+
+    # Smaller budget -> fewer flushes -> longer interval.
+    assert recommended_flush_interval_seconds(4.0, 2.0) == pytest.approx(43200.0)
+
+    # Budget below one flush still yields a single flush/day (no div-by-zero).
+    assert recommended_flush_interval_seconds(1.0, 2.0) == pytest.approx(86400.0)
+
+    # Custom window is honoured.
+    assert recommended_flush_interval_seconds(
+        10.0, 2.0, window_seconds=3600.0
+    ) == pytest.approx(720.0)
+
+    # Invalid inputs raise.
+    with pytest.raises(ValueError):
+        recommended_flush_interval_seconds(0.0, 2.0)
+    with pytest.raises(ValueError):
+        recommended_flush_interval_seconds(10.0, 0.0)

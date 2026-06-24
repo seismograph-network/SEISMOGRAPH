@@ -229,3 +229,93 @@ def test_flush_raises_on_non_202(key_manager):
         sdk.flush()
 
     assert "500" in str(exc_info.value)
+
+
+# ---------------------------------------------------------------------------
+# T5 -- transmission pacing (P2-012): throttle within interval
+# ---------------------------------------------------------------------------
+
+
+def _stage_one_span(sdk: ProbeSDK, tokens: int = 64) -> None:
+    """Open + close one canary span so a CanaryResult is staged."""
+    span = sdk.start_canary_span(prompt_count=1)
+    span.attributes["gen_ai.usage.output_tokens"] = tokens
+    span.attributes["gen_ai.response.json_valid"] = True
+    sdk.finish_canary_span(status_code="OK")
+
+
+def test_flush_throttle_accumulates_within_interval(key_manager):
+    """T5: a second flush within min_flush_interval accumulates, not sends.
+
+    The first flush transmits and spends epsilon. A second flush arriving
+    immediately is throttled: no HTTP call, no extra epsilon, and the newly
+    staged result stays in the Aggregator for the next batch.
+    """
+    mock_client = _make_mock_client(status_code=202)
+    config = _make_config(min_flush_interval_seconds=3600.0)
+    sdk = ProbeSDK(config, _http_client=mock_client, _key_manager=key_manager)
+
+    # Round 1: stage + flush -> transmits.
+    _stage_one_span(sdk)
+    first = sdk.flush()
+    assert first["status"] == "ok"
+    assert mock_client.post.call_count == 1
+    assert sdk._accountant.current_spend == pytest.approx(FLUSH_EPSILON)
+
+    # Round 2: stage + flush immediately -> throttled (accumulating).
+    _stage_one_span(sdk)
+    second = sdk.flush()
+    assert second["status"] == "accumulating"
+    assert second["staged_results"] == 1
+    # No second HTTP call, no extra epsilon spent.
+    assert mock_client.post.call_count == 1
+    assert sdk._accountant.current_spend == pytest.approx(FLUSH_EPSILON)
+    # The result is retained for the next transmission (not dropped).
+    assert sdk._aggregator.pending_count(_MODEL_TUPLE) == 1
+
+
+# ---------------------------------------------------------------------------
+# T6 -- transmission pacing: resumes after the interval elapses
+# ---------------------------------------------------------------------------
+
+
+def test_flush_resumes_after_interval_elapses(key_manager):
+    """T6: once min_flush_interval has elapsed, flush transmits again.
+
+    Simulates elapsed time by back-dating the last-transmission marker.
+    """
+    mock_client = _make_mock_client(status_code=202)
+    config = _make_config(min_flush_interval_seconds=100.0)
+    sdk = ProbeSDK(config, _http_client=mock_client, _key_manager=key_manager)
+
+    _stage_one_span(sdk)
+    sdk.flush()
+    assert mock_client.post.call_count == 1
+
+    # Pretend 1000s passed since the last transmission (> 100s interval).
+    assert sdk._last_flush_monotonic is not None
+    sdk._last_flush_monotonic -= 1000.0
+
+    _stage_one_span(sdk)
+    result = sdk.flush()
+    assert result["status"] == "ok"
+    assert mock_client.post.call_count == 2
+    assert sdk._accountant.current_spend == pytest.approx(2 * FLUSH_EPSILON)
+
+
+# ---------------------------------------------------------------------------
+# T7 -- pacing disabled by default: every flush transmits
+# ---------------------------------------------------------------------------
+
+
+def test_flush_not_throttled_when_pacing_disabled(key_manager):
+    """T7: with min_flush_interval_seconds=0 (default), no throttling."""
+    mock_client = _make_mock_client(status_code=202)
+    config = _make_config()  # min_flush_interval_seconds defaults to 0.0
+    sdk = ProbeSDK(config, _http_client=mock_client, _key_manager=key_manager)
+
+    _stage_one_span(sdk)
+    assert sdk.flush()["status"] == "ok"
+    _stage_one_span(sdk)
+    assert sdk.flush()["status"] == "ok"
+    assert mock_client.post.call_count == 2

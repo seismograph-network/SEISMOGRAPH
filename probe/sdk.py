@@ -86,7 +86,20 @@ import httpx
 
 from probe.canary import CanaryResult
 from probe.crypto import KeyManager, canonical_json
-from probe.privacy import Aggregator, DPAccountant, PrivacyBudgetExceededError
+from probe.privacy import (
+    Aggregator,
+    DPAccountant,
+    PrivacyBudgetExceededError,
+    recommended_flush_interval_seconds,
+)
+
+__all__ = [
+    "FLUSH_EPSILON",
+    "ProbeConfig",
+    "ProbeSDK",
+    "OTelSpanContext",
+    "recommended_flush_interval_seconds",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -144,6 +157,17 @@ class ProbeConfig:
         (default) disables persistence (budget resets to zero on
         each ProbeSDK instantiation).  Set to a writable path
         such as '.seismograph_dp.json' in production.
+    min_flush_interval_seconds:
+        Transmission pacing. Minimum seconds between flushes that
+        actually transmit (and spend epsilon). When > 0, a flush()
+        arriving sooner than this since the last transmission is
+        throttled: pending results stay staged in the Aggregator and
+        accumulate into the next batch, and no epsilon is spent. This
+        decouples collection cadence from transmission cadence so a
+        short probe interval does not exhaust the daily DP budget.
+        Default 0.0 disables pacing (every flush() transmits). Use
+        probe.privacy.recommended_flush_interval_seconds(budget) to
+        derive a budget-safe value.
     fleet_id:
         Optional tenant identifier for private fleet isolation.
         None (default) routes batches through the public network
@@ -175,6 +199,7 @@ class ProbeConfig:
     dry_run: bool = False
     daily_epsilon_budget: float = 10.0
     dp_storage_path: str | None = None
+    min_flush_interval_seconds: float = 0.0
     fleet_id: str | None = None
 
 
@@ -293,6 +318,10 @@ class ProbeSDK:
                 storage_path=config.dp_storage_path,
             )
         )
+        # Monotonic timestamp of the last flush that actually transmitted
+        # (spent epsilon). None until the first transmission. Used to pace
+        # transmissions when config.min_flush_interval_seconds > 0.
+        self._last_flush_monotonic: float | None = None
 
     # ------------------------------------------------------------------
     # Span lifecycle
@@ -456,6 +485,8 @@ class ProbeSDK:
         headers.
 
         Returns {"status": "noop"} if no pending data.
+        Returns {"status": "accumulating", ...} if throttled by
+            min_flush_interval_seconds (results retained, no epsilon spent).
         Returns {"status": "budget_exceeded"} if budget exhausted.
         Returns {"status": "ok", "batches": [...]} on success.
 
@@ -479,6 +510,33 @@ class ProbeSDK:
             logger.info("flush() called with no pending results -- noop")
             return {"status": "noop"}
 
+        # Transmission pacing gate (decouples collection from transmission).
+        # When min_flush_interval_seconds > 0, a flush that arrives sooner
+        # than that interval since the last *transmission* is throttled:
+        # results stay staged in the Aggregator (which keeps accumulating)
+        # and no epsilon is spent. This prevents a short collection interval
+        # from burning the daily DP budget in the first few rounds.
+        min_interval = self.config.min_flush_interval_seconds
+        if min_interval > 0 and self._last_flush_monotonic is not None:
+            elapsed = time.monotonic() - self._last_flush_monotonic
+            if elapsed < min_interval:
+                staged = sum(
+                    self._aggregator.pending_count(mt) for mt in pending
+                )
+                logger.info(
+                    "flush() throttled: %.0fs since last transmission < "
+                    "min %.0fs; accumulating (%d staged across %d models)",
+                    elapsed,
+                    min_interval,
+                    staged,
+                    len(pending),
+                )
+                return {
+                    "status": "accumulating",
+                    "seconds_until_flush": round(min_interval - elapsed, 1),
+                    "staged_results": staged,
+                }
+
         # Privacy budget gate.
         self._accountant.reset_if_needed()
         try:
@@ -489,6 +547,10 @@ class ProbeSDK:
             )
             self._aggregator.clear_all()
             return {"status": "budget_exceeded"}
+
+        # Transmission committed (budget spent). Record the time so flushes
+        # arriving within min_flush_interval_seconds are throttled above.
+        self._last_flush_monotonic = time.monotonic()
 
         batches: list[dict[str, Any]] = []
         _client: httpx.Client | None = self._http_client
