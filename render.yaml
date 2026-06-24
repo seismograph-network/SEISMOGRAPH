@@ -1,0 +1,29 @@
+# render.yaml -- SEISMOGRAPH public Model Weather dashboard (demo)
+# ================================================================
+# Render Blueprint. Builds the gateway image (Dockerfile) with the
+# SQLite demo DB (data/seismograph.db) baked in, so the dashboard is
+# never empty.
+#
+# Note: Render injects $PORT (default 10000) and routes external
+# traffic to it, so we override the container command to bind there
+# instead of the Dockerfile's fixed 8000.
+#
+# Free plan spins the service down after ~15 min idle; the first
+# request after idle takes ~50s to wake. Acceptable for a demo link.
+
+services:
+  - type: web
+    name: seismograph-weather
+    runtime: docker
+    plan: free
+    region: frankfurt              # closest Render region to Aarhus, DK
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: /bin/sh -c "uvicorn gateway.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /v1/weather
+    autoDeploy: true
+    envVars:
+      - key: STORAGE_BACKEND
+        value: sqlite
+      - key: QUORUM_BACKEND
+        value: memory

@@ -15,8 +15,7 @@ FROM python:3.11-slim
 
 # Metadata
 LABEL org.opencontainers.image.title="SEISMOGRAPH Gateway"
-LABEL org.opencontainers.image.description=\
-    "Privacy-preserving LLM semantic drift detection ingestion gateway"
+LABEL org.opencontainers.image.description="Privacy-preserving LLM semantic drift detection ingestion gateway"
 LABEL org.opencontainers.image.version="0.2.0"
 
 # Non-root runtime user (security best practice)
@@ -71,7 +70,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
         "import urllib.request; urllib.request.urlopen(\
 'http://localhost:8000/v1/weather')"
 
-CMD ["uvicorn", "gateway.main:app",
-     "--host", "0.0.0.0",
-     "--port", "8000",
-     "--workers", "1"]
+CMD ["uvicorn", "gateway.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

@@ -1,0 +1,22 @@
+# Keep the Docker build context lean (and avoid uploading it to the
+# Fly remote builder). Only excludes artifacts that NEITHER Dockerfile
+# nor Dockerfile.fleet needs. Do NOT add probe/ or scripts/ here --
+# Dockerfile.fleet copies them.
+.git
+.git/**
+.gitignore
+**/__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+pytest-cache-files-*/
+dist/
+build/
+*.egg-info/
+.venv/
+venv/
+*.log
+kernel.log
+node_modules/
+.DS_Store
