@@ -382,8 +382,7 @@ class BayesianOnlineDetector:
 
         # --- 6. Prune low-probability hypotheses ---
         keep = [
-            i for i, p in enumerate(new_probs)
-            if p >= self._PRUNE_THRESHOLD
+            i for i, p in enumerate(new_probs) if p >= self._PRUNE_THRESHOLD
         ]
         if not keep:
             keep = [0]  # always retain changepoint hypothesis

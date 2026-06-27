@@ -13,11 +13,16 @@ Usage
 -----
 Environment variables:
 
-  SEISMOGRAPH_GATEWAY_URL   Gateway endpoint (default: http://localhost:8000/v1/signals)
-  SEISMOGRAPH_KEY_DIR       Directory for the Ed25519 fleet keypair (default: /var/seismograph)
-  PROBE_INTERVAL_SECONDS    Sleep between probe rounds in seconds (default: 14400 = 4 h)
-  OPENAI_API_KEY            Optional. Real OpenAI calls when set; MOCK mode if absent.
-  ANTHROPIC_API_KEY         Optional. Real Anthropic calls when set; MOCK mode if absent.
+  SEISMOGRAPH_GATEWAY_URL   Gateway endpoint (default:
+                            http://localhost:8000/v1/signals)
+  SEISMOGRAPH_KEY_DIR       Directory for the Ed25519 fleet keypair (default:
+                            /var/seismograph)
+  PROBE_INTERVAL_SECONDS    Sleep between probe rounds in seconds (default:
+                            14400 = 4 h)
+  OPENAI_API_KEY            Optional. Real OpenAI calls when set; MOCK mode if
+                            absent.
+  ANTHROPIC_API_KEY         Optional. Real Anthropic calls when set; MOCK mode
+                            if absent.
 
 Mock mode
 ---------
@@ -57,12 +62,14 @@ See docs/PROVIDER_TOS_CHECKS.md.
 #SG-TRACE: REQ-FLEET-002
 #   | assumption: one KeyManager shared across all model SDKs;
 #     all fleet signals carry the same Ed25519 public key (one fleet identity)
-#   | test: fleet_key.pem is stable across restarts (KeyManager loads if exists)
+#   | test: fleet_key.pem is stable across restarts
+#           (KeyManager loads if exists)
 #SG-TRACE: REQ-FLEET-003
 #   | assumption: mock mode produces output_tokens=7, json_valid=True;
 #     this builds a clean CUSUM baseline identical to a healthy real response
 #   | test: py_compile + manual MOCK run against a local gateway
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -100,9 +107,7 @@ GATEWAY_URL: str = os.getenv(
     "SEISMOGRAPH_GATEWAY_URL", "http://localhost:8000/v1/signals"
 )
 KEY_DIR: Path = Path(os.getenv("SEISMOGRAPH_KEY_DIR", "/var/seismograph"))
-PROBE_INTERVAL_SECONDS: int = int(
-    os.getenv("PROBE_INTERVAL_SECONDS", "14400")
-)
+PROBE_INTERVAL_SECONDS: int = int(os.getenv("PROBE_INTERVAL_SECONDS", "14400"))
 
 # Per-probe daily epsilon privacy budget (forwarded to each ProbeSDK's
 # DPAccountant).  Each flush() costs FLUSH_EPSILON (2.0), so the budget
@@ -140,16 +145,16 @@ MIN_FLUSH_INTERVAL_SECONDS: float = float(
 # Reviewed as ToS-compliant for OpenAI and Anthropic.
 # See docs/PROVIDER_TOS_CHECKS.md.
 CANARY_PROMPT: str = (
-    'Output the following JSON exactly, with no extra text or markdown: '
+    "Output the following JSON exactly, with no extra text or markdown: "
     '{"canary": "alive"}'
 )
 EXPECTED_RESPONSE: dict[str, str] = {"canary": "alive"}
 
 # Hash of the canary suite version — used as the stable suite_version_hash
 # in ProbeConfig.  Ties each signal batch to a specific prompt corpus version.
-SUITE_VERSION_HASH: str = hashlib.sha256(
-    SUITE_VERSION.encode()
-).hexdigest()[:16]
+SUITE_VERSION_HASH: str = hashlib.sha256(SUITE_VERSION.encode()).hexdigest()[
+    :16
+]
 
 # ---------------------------------------------------------------------------
 # Target model registry
@@ -295,7 +300,9 @@ def _mock_result(model_tuple: str) -> ProbeResult:
     #   | assumption: 7 tokens ≈ {"canary": "alive"} across all tokenizers
     #   | test: implicit -- MOCK mode exercises all probe/gateway code paths
     """
-    logger.debug("MOCK | model=%s output_tokens=7 json_valid=True", model_tuple)
+    logger.debug(
+        "MOCK | model=%s output_tokens=7 json_valid=True", model_tuple
+    )
     return ProbeResult(output_tokens=7, json_valid=True)
 
 
@@ -414,16 +421,12 @@ def probe_model(
         if not span_finished:
             sdk.finish_canary_span(status_code=503, error_message=str(exc))
             span_finished = True
-        logger.error(
-            "Request error | model=%s error=%r", model_tuple, exc
-        )
+        logger.error("Request error | model=%s error=%r", model_tuple, exc)
     except Exception as exc:  # noqa: BLE001
         if not span_finished:
             sdk.finish_canary_span(status_code=500, error_message=str(exc))
             span_finished = True
-        logger.error(
-            "Unhandled error | model=%s error=%r", model_tuple, exc
-        )
+        logger.error("Unhandled error | model=%s error=%r", model_tuple, exc)
 
 
 # ---------------------------------------------------------------------------
@@ -437,7 +440,8 @@ def main() -> None:
     Key initialisation steps:
     1. Create KEY_DIR if absent; load or generate the Ed25519 fleet keypair.
     2. Detect API key availability and log mock mode per provider.
-    3. Build one ProbeSDK per model_tuple (shared KeyManager, unique aggregators).
+    3. Build one ProbeSDK per model_tuple
+       (shared KeyManager, unique aggregators).
     4. Enter the probe loop: probe each model, sleep PROBE_INTERVAL_SECONDS.
 
     Loop safety: individual probe errors are caught inside probe_model().
@@ -475,7 +479,8 @@ def main() -> None:
             )
         if not has_anthropic:
             logger.warning(
-                "ANTHROPIC_API_KEY not set -- anthropic/* models will use MOCK mode."
+                "ANTHROPIC_API_KEY not set -- anthropic/* models "
+                "will use MOCK mode."
             )
 
     # ------------------------------------------------------------------
@@ -485,9 +490,10 @@ def main() -> None:
     # The shared KeyManager means all batches carry the same Ed25519
     # public key -- one fleet identity in the gateway's view.
 
-    FleetEntry = NamedTuple(
-        "FleetEntry", [("model_tuple", str), ("sdk", ProbeSDK), ("mock", bool)]
-    )
+    class FleetEntry(NamedTuple):
+        model_tuple: str
+        sdk: ProbeSDK
+        mock: bool
 
     fleet: list[FleetEntry] = []
     for model_tuple in TARGET_MODELS:
@@ -504,9 +510,7 @@ def main() -> None:
         )
         sdk = ProbeSDK(config=config, _key_manager=key_manager)
         fleet.append(FleetEntry(model_tuple=model_tuple, sdk=sdk, mock=mock))
-        logger.info(
-            "Registered | model=%-35s mock=%s", model_tuple, mock
-        )
+        logger.info("Registered | model=%-35s mock=%s", model_tuple, mock)
 
     logger.info(
         "Fleet runner started | models=%d interval=%ds gateway=%s",

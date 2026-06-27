@@ -139,8 +139,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-import secrets
 import pathlib
+import secrets
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -834,7 +834,8 @@ async def export_audit_report(alert_id: int, request: Request) -> JSONResponse:
     #SG-TRACE: REQ-AUDIT-001
     #   | assumption: SEISMOGRAPH_EXPORT_TOKEN is a shared secret for
     #     Phase 3; Phase 4 replaces with per-fleet OAuth scoped tokens
-    #   | test: test_audit_export_no_auth_401, test_audit_export_wrong_token_401,
+    #   | test: test_audit_export_no_auth_401,
+    #           test_audit_export_wrong_token_401,
     #           test_audit_export_token_not_configured_503
     """
     # ------------------------------------------------------------------
@@ -857,7 +858,7 @@ async def export_audit_report(alert_id: int, request: Request) -> JSONResponse:
             status_code=401,
             detail="Authorization header required: Bearer <export-token>",
         )
-    provided: str = auth_header[len("Bearer "):]
+    provided: str = auth_header[len("Bearer ") :]
     if not secrets.compare_digest(provided, export_token):
         raise HTTPException(status_code=401, detail="Invalid export token")
 
@@ -869,7 +870,7 @@ async def export_audit_report(alert_id: int, request: Request) -> JSONResponse:
         raise HTTPException(
             status_code=404,
             detail=f"Alert {alert_id} not found in local or public tables.",
-        )
+        ) from None
 
     filename = f"seismograph_audit_{alert_id}.json"
     return JSONResponse(

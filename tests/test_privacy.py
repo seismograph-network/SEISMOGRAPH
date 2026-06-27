@@ -467,13 +467,16 @@ def test_recommended_flush_interval_seconds() -> None:
     #SG-TRACE: REQ-PRIV-012 | test: test_recommended_flush_interval_seconds
     """
     # Default budget: 10.0 / 2.0 = 5 flushes -> 86400 / 5 = 17280s (4.8h).
-    assert recommended_flush_interval_seconds(10.0, 2.0) == pytest.approx(17280.0)
+    val = recommended_flush_interval_seconds(10.0, 2.0)
+    assert val == pytest.approx(17280.0)
 
     # Smaller budget -> fewer flushes -> longer interval.
-    assert recommended_flush_interval_seconds(4.0, 2.0) == pytest.approx(43200.0)
+    val = recommended_flush_interval_seconds(4.0, 2.0)
+    assert val == pytest.approx(43200.0)
 
     # Budget below one flush still yields a single flush/day (no div-by-zero).
-    assert recommended_flush_interval_seconds(1.0, 2.0) == pytest.approx(86400.0)
+    val = recommended_flush_interval_seconds(1.0, 2.0)
+    assert val == pytest.approx(86400.0)
 
     # Custom window is honoured.
     assert recommended_flush_interval_seconds(
