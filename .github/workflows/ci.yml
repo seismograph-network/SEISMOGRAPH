@@ -1,0 +1,59 @@
+name: ci
+
+# Mechanically enforces the project invariants on every push and PR so they
+# cannot silently drift (Session 024 lesson: lint drift returned because the
+# "0 violations" rule was only ever checked by hand):
+#   - ruff check      -> 0 lint violations
+#   - ruff format     -> already-formatted
+#   - pytest          -> full suite green (107 at time of writing)
+#
+# ruff is pinned so a future ruff release adding new rules cannot turn a green
+# main red without an explicit, reviewed bump here.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.10 = the runtime tests are validated on locally;
+        # 3.11 = pyproject requires-python / ruff target-version.
+        python-version: ["3.10", "3.11"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install tooling and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # ruff pinned to match the locally validated version.
+          pip install ruff==0.15.20 pytest \
+            fastapi "uvicorn[standard]" httpx sqlalchemy pydantic \
+            cryptography opentelemetry-sdk redis clickhouse-connect
+
+      - name: Ruff lint (0-violations invariant)
+        run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+      - name: Pytest (full suite)
+        # pyproject sets pythonpath=["."] and -p no:cacheprovider, so the
+        # packages resolve without an editable install.
+        run: pytest -q
