@@ -1512,3 +1512,14 @@ KEYSTONE_REPORT_SESSION_024.md — pending Tatiana sign-off.
 
 ### Confirmed by Tatiana
 - [ ] Pending session-end confirmation
+### Session 024 addendum - privacy defect (post-push, remediated)
+- D-PRIV-024: KEYSTONE_REPORT_SESSION_024.md Section 2 listed the actual private
+  outreach names while documenting the privacy scan; committed + pushed in
+  86972aa before being caught. Fix: names removed, tip commit amended to 7b6413f,
+  force-pushed (--force-with-lease), branch seismograph/task-cleanup-024 deleted.
+  Residual: unreachable object 86972aa may persist on GitHub until GC; names are
+  public-domain (company CTOs), residual risk low.
+- Lesson: the privacy scan must cover the report that documents the scan, not
+  only the files under review.
+### Confirmed by Tatiana
+- [x] Session 024 complete and signed off - 2026-06-27
