@@ -1458,3 +1458,57 @@ cancelled perfectly in normalisation. Fix: use prior predictive for changepoint.
 
 ### Confirmed by Tatiana
 - [ ] Pending
+
+---
+
+## Session 024 — 2026-06-27
+
+**Director:** Tatiana
+**Co-pilot:** Claude (Lead Technical Co-Pilot)
+**Phase:** Post-launch — technical health pass
+**Branch:** seismograph/task-cleanup-024
+
+### Task
+Tech-debt cleanup so future sessions are not slowed by lint drift, repo clutter,
+and bloated memory files. Three phases.
+
+### Phase A — code health (commit 302a94c)
+- Restored ruff invariant: 15 violations → 0 (39 files). ruff format clean.
+- gateway/main.py: B904 `raise ... from None` on audit 404; isort import order;
+  wrapped SG-TRACE comment. scripts/first_party_fleet.py: 9 long-line wraps +
+  NamedTuple→class (UP014). tests/test_privacy.py: 3 asserts split.
+  engine/correlation.py: format-only (pre-existing drift, Session 022).
+- Tatiana local run: 107 passed.
+
+### Phase B — repo hygiene (commit fe9cc2a)
+- .gitignore: guards personal/marketing files (HANDOFF_*.md, NEXT_SESSION_PROMPT,
+  LinkedIn_Kit, banners) from the public repo — files stay on disk.
+- Tracked fly.toml + KEYSTONE_REPORT_SESSION_021.md; committed prior-session
+  .env.example + .gitignore + memory edits.
+- "Junk" flagged in the sandbox (sqlite:, pytest-cache-files-*, __sync_probe.txt,
+  caches) was sandbox-overlay only — confirmed ABSENT on the real NTFS disk.
+
+### Phase C — context compression
+- New memory/CURRENT_STATE.md (lean session-start read).
+- project_open_tasks.md compressed 26,370 → 2,759 bytes (open tasks + completed
+  index); full verbatim history moved to memory/archive/completed_tasks_archive.md.
+- project_session_log.md left UNTOUCHED (append-only invariant honored).
+- Session-start read ≈ 28k → ≈ 3k tokens.
+
+### Defects / findings
+- pyproject.toml comment promises "ignore E501 in comments/docstrings" but never
+  implemented → source of the lint drift.
+- Privacy near-miss: CTO outreach names almost committed to public memory files;
+  scrubbed before commit.
+- Sandbox cannot delete files / clear git locks on the NTFS mount.
+
+### Open at session end
+- Merge + push branch seismograph/task-cleanup-024.
+- Update constitution "Session start protocol" → read CURRENT_STATE.md first.
+- P3-002 webhook sign-off (verify); graph.json empty; infra/security backlog.
+
+### Keystone Report
+KEYSTONE_REPORT_SESSION_024.md — pending Tatiana sign-off.
+
+### Confirmed by Tatiana
+- [ ] Pending session-end confirmation
