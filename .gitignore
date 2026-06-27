@@ -29,3 +29,19 @@ data/*.db-wal
 
 # Scripts scratch
 scripts/test_write
+
+# Private business / sales material (never publish)
+business/
+
+# Private job-search material (never publish)
+job_search/
+
+# Social post drafts (working copies)
+social/
+
+# Personal session notes & marketing assets (local only, never publish)
+HANDOFF_*.md
+NEXT_SESSION_PROMPT.md
+LinkedIn_Kit_Tatiana.md
+banner_gradient_mesh.png
+linkedin_banner.png

@@ -1,0 +1,46 @@
+# fly.toml -- SEISMOGRAPH public Model Weather dashboard (demo)
+# =============================================================
+# Deploys the gateway image (Dockerfile) with the SQLite demo DB
+# (data/seismograph.db) baked in, so the dashboard is never empty.
+#
+#   fly deploy            # build remotely + release
+#   fly open /dashboard   # open the live dashboard
+#
+# always-on: auto_stop_machines=false + min_machines_running=1 keeps a
+# single tiny machine warm so the link opens instantly (no cold start).
+
+app = "seismograph-weather"
+primary_region = "ams"  # Amsterdam -- closest Fly region to Aarhus, DK
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  STORAGE_BACKEND = "sqlite"
+  QUORUM_BACKEND = "memory"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+[checks.weather]
+  type = "http"
+  port = 8000
+  method = "GET"
+  path = "/v1/weather"
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "10s"
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1

@@ -1290,3 +1290,171 @@ find confirms only pyproject_probe.toml + scripts/build_probe.sh are new.
 
 **Next trigger:** First "is the model dumber today?" signal on Reddit or X.
 
+
+---
+
+## Session 020 — 2026-06-16
+
+**Director:** Tatiana
+**Co-pilot:** Claude (claude-sonnet-4-6)
+**Phase:** Post-launch housekeeping (HN launch was 2026-06-14)
+
+### What was done
+- Fixed stray `.git` from C:\Users\User (ran from wrong directory last session)
+- Initialized git correctly in D:\Dev\Projects\SEISMOGRAPH
+- Configured git identity (tatyan.radchenko@gmail.com / Tatiana)
+- Force-pushed to github.com/seismograph-network/SEISMOGRAPH (main branch)
+- Updated `.gitignore`: added pycache, *.pyc, runtime state, db, dist, kernel.log
+- Untracked junk files from git index (pycache, .seismograph_dp.json, kernel.log, db, dist, scripts/test_write)
+- Fixed README test count: "23 passed" → "100 passed"
+- Published seismograph-probe v1.0.0 to PyPI: https://pypi.org/project/seismograph-probe/1.0.0/
+- Removed Egor as collaborator from GitHub repo
+- Completed ToS reviews for Google Gemini ✅, Mistral ✅, Cohere ✅ — all approved
+- docs/PROVIDER_TOS_CHECKS.md updated with full reasoning for all 5 providers
+- NOTE: ToS commit not yet pushed to GitHub — deferred to Session 021
+
+### What is open (carry-forward to Session 021)
+1. Push ToS update: `git add docs/PROVIDER_TOS_CHECKS.md && git commit -m "docs: complete ToS reviews for Gemini, Mistral, Cohere" && git push origin main`
+   (May need to remove stale index.lock first: `Remove-Item D:\Dev\Projects\SEISMOGRAPH\.git\index.lock -Force`)
+2. KNOWN-LIMIT-FLEET-002: pin requirements-fleet.txt
+3. KNOWN-LIMIT-FLEET-003: ±5% jitter on PROBE_INTERVAL_SECONDS
+4. KNOWN-LIMIT-P3-004-C: add auth to /v1/alerts/{alert_id}/export
+5. P3-002 Webhooks & Alerting (not started)
+6. P3-004 Audit Export (not started)
+7. P0-005 BayesianOnlineDetector.update() (still deferred)
+
+---
+
+## Session 021 — 2026-06-22
+
+**Tasks completed:**
+- P3-004-C: Bearer token auth on `/v1/alerts/{alert_id}/export`
+  - gateway/main.py: SEISMOGRAPH_EXPORT_TOKEN check; 503/401/200 paths
+  - tests/test_audit.py: AU9, AU10, AU11 added; AU6/AU7 updated
+  - .env.example: SEISMOGRAPH_EXPORT_TOKEN documented
+  - All 11 AU* tests pass; 97 other tests unaffected
+  - Commit 0b25c60 pushed to main
+
+**Defects found and fixed:**
+- D-PC-021-01: test_audit.py truncated at line 336 (RULE-1 violation)
+- D-PC-021-02: gateway/main.py truncated at line 837 (RULE-1 violation)
+- D-PC-021-03: stale .pyc masked SyntaxError; fix: -p no:cacheprovider
+- D-PC-021-04: monkeypatch misdiagnosis (actually D-PC-021-03)
+- D-PC-021-05: git index corruption; fix: Remove-Item .git\index + git reset
+
+**Keystone Report:** KEYSTONE_REPORT_SESSION_021.md
+
+**Open tasks carried forward:**
+- P3-002: Webhooks & Alerting
+- P0-005: BayesianOnlineDetector.update() (long-deferred)
+
+### Session 021 addendum — fleet deployment started
+
+- GET /v1/weather restored (was lost to Edit-tool truncation in prior session)
+- P3-002 confirmed complete (8/8 WH* tests already in repo, all pass)
+- Fleet local deployment started: uvicorn gateway on port 8000 (SQLite/memory),
+  fleet runner with PROBE_INTERVAL_SECONDS=60 and PYTHONPATH set
+- Full suite at close: 103/103 passed
+
+### Open at session end
+- P0-005: BayesianOnlineDetector.update() (long-deferred)
+- Verify fleet is writing data and dashboard shows models at http://localhost:8000
+
+---
+
+## Session 022 — 2026-06-23
+
+**Director:** Tatiana
+**Co-pilot:** Claude (claude-sonnet-4-6)
+**Phase:** Post-launch — Repo migration + Social media launch
+
+### What was done
+
+**Repo migration**
+- Transferred repo from `seismograph-network/SEISMOGRAPH` → `Tania-coder/SEISMOGRAPH`
+- Git remote updated: `https://github.com/Tania-coder/SEISMOGRAPH.git`
+- README updated: added "Created by Tatiana Radchenko"
+- Commit `b253e87` pushed — all 7 commits in repo under tatyan.radchenko@gmail.com
+
+**Local environment**
+- Dashboard running at http://localhost:8000 (uvicorn gateway + fleet runner active)
+
+**Social media launch** (в процессе)
+- LinkedIn post: prepared and ready to publish
+- Twitter/X post: prepared and ready to publish
+
+### Open tasks (carry-forward)
+- P0-005: BayesianOnlineDetector.update() in engine/correlation.py (long-deferred)
+- P3-002: Webhooks & Alerting (open)
+
+
+---
+## Session 022 — continued (2026-06-24)
+
+### P0-005 BayesianOnlineDetector.update() — COMPLETE
+
+**Commit:** 456bc0c  
+**File:** engine/correlation.py (478 lines)
+
+**Algorithm (Adams & MacKay 2007 BOCD, NIG conjugate prior):**
+- Changepoint mass = h × P(x_t | PRIOR) — prior predictive, not run predictive
+- Growth mass[r] = P(r_{t-1}=r) × (1-h) × P(x_t | NIG posterior for run r)
+- NIG update for index 0 uses PRIOR hyperparams (fresh segment)
+- Prune threshold 1e-10; normalise after each step
+- Defaults: alpha0=2.0, beta0=0.01 (prior std ~0.1, suitable for rates in [0,1])
+
+**Verification:**
+- Smoke test: P(cp)=0.88 after 30 stable obs at 0.95 then x=0.70 shift ✓
+- ruff check: clean ✓
+- 22 tests pass (test_crypto.py, test_scorer_redis.py) ✓
+
+**Key bug fixed:** first implementation had P(changepoint) = hazard_rate always,
+because both hypotheses used the same run-length predictive — hazard factor
+cancelled perfectly in normalisation. Fix: use prior predictive for changepoint.
+
+**Open tasks remaining:** P3-002 Webhooks & Alerting | Zenodo DOI | LinkedIn Experience section
+
+---
+
+## Session 023 — 2026-06-27
+
+**Director:** Tatiana
+**Co-pilot:** Claude (claude-sonnet-4-6)
+**Phase:** Post-launch — Social media + dev.to launch
+
+### What was done
+
+**dev.to account — fully set up**
+- Completed onboarding (tags: #ai #opensource #python #machinelearning)
+- Profile filled: bio, location (Aarhus, Denmark), brand color #00c896
+- Fields: Currently learning, Available for, Skills/Languages, Currently hacking on, Work
+- Website URL: github.com/Tania-coder/SEISMOGRAPH
+
+**dev.to article — published**
+- Title: "I've been building SEISMOGRAPH for 3 weeks. Here's what shipped today."
+- Tags: #ai #python #opensource #machinelearning
+- Content: real technical results — 103/103 tests, CUSUM 38-day lead time, privacy boundary, PyPI package, ToS compliance, honest "not done yet" section
+- URL: dev.to/tatyanti (posted 23 июн.)
+
+**dev.to/settings/connect** — navigated, pending GitHub/Twitter OAuth
+
+### Open tasks (carry-forward to Session 024)
+
+**Priority 1 — infrastructure**
+- Check tatyan.radchenko@gmail.com for PyPI recovery response (issue #11202)
+- After PyPI access: change password, new recovery codes, new API token, publish seismograph-probe 1.0.1 sole author
+- GitHub 2FA: add TOTP backup before July 30, 2026 deadline
+
+**Priority 2 — social presence**
+- dev.to/settings/connect: connect GitHub (Tania-coder) + Twitter (@tatyanti) via OAuth
+- LinkedIn: add SEISMOGRAPH as Experience entry (current position, June 2026–present)
+- seismograph-network org: decide — keep as umbrella org or delete
+
+**Priority 3 — technical**
+- P3-002: Webhooks & Alerting — code not started
+- Zenodo DOI: register for reproducibility + prior art timestamping
+- Verify fleet writes data to SQLite and dashboard shows live models at localhost:8000
+- HN: build karma via comments before reposting Show HN
+
+### Confirmed by Tatiana
+- [ ] Pending

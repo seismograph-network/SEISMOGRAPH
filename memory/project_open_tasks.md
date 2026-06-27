@@ -46,7 +46,7 @@ Adversarial: send malformed/unsigned batch → verify atomic rejection + log.
 
 ### P0-005 — Correlation engine (engine/correlation.py)
 `[~]` engine/detector.py: CUSUMDetector.update() -- COMPLETE.
-Implement `BayesianOnlineDetector.update()`.
+Implement `BayesianOnlineDetector.update()`. [COMPLETE 2026-06-24 commit 456bc0c]
 Document threshold decisions as labelled data in `data/drift_labels/`.
 Adversarial: correlated noise burst from single org must NOT produce public alert.
 
@@ -544,3 +544,43 @@ SEISMOGRAPH is officially live. Phase 0 complete. Standby mode active.
 - Anomalous signal in fleet runner logs
 - First community probe joins the network
 - PyPI download milestone warrants blog follow-up
+
+---
+
+## Post-Launch Housekeeping — Session 020/021 (2026-06-22)
+
+### [DONE] Git fix
+- Re-initialized git in correct directory (D:\Dev\Projects\SEISMOGRAPH)
+- Renamed master → main; pushed to GitHub
+
+### [DONE] .gitignore cleanup
+- Added pycache, *.pyc, runtime state, db, dist/, build/, .venv/, .env
+
+### [DONE] README test count
+- "23 passed" → "100 passed"
+
+### [DONE] PyPI publish
+- seismograph-probe v1.0.0 live at https://pypi.org/project/seismograph-probe/1.0.0/
+
+### [DONE] Remove Egor as collaborator
+- Removed from GitHub repo
+
+### [DONE] Provider ToS reviews
+- All 5 providers reviewed: OpenAI ✅, Anthropic ✅, Gemini ✅, Mistral ✅, Cohere ✅
+- docs/PROVIDER_TOS_CHECKS.md updated and pushed
+
+### [DONE] FLEET-002 — Pin requirements-fleet.txt
+- requirements-fleet.txt created; Dockerfile.fleet updated
+
+### [DONE] FLEET-003 — ±5% jitter on PROBE_INTERVAL_SECONDS
+- scripts/first_party_fleet.py updated with random.uniform(0.95, 1.05)
+
+### [DONE] P3-004-C — Auth on /v1/alerts/{alert_id}/export
+- Bearer token auth via SEISMOGRAPH_EXPORT_TOKEN env var
+- 503 if unset, 401 if wrong/missing, 200 if correct
+- AU6-AU11 all pass (11/11 audit tests); 97 other tests unaffected
+- gateway/main.py + tests/test_audit.py + .env.example updated
+- Commit: 0b25c60 — pushed to main
+
+### [OPEN] P3-002 — Webhooks & Alerting
+### [DONE] P0-005 — BayesianOnlineDetector.update() — COMPLETE 2026-06-24 commit 456bc0c
