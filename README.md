@@ -7,6 +7,7 @@
 [![Lint](https://img.shields.io/badge/ruff-0%20violations-brightgreen.svg)](https://github.com/astral-sh/ruff)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](#license)
 [![Live Demo](https://img.shields.io/badge/live%20demo-Model%20Weather-8A2BE2.svg)](https://seismograph-weather.onrender.com/dashboard)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21045518.svg)](https://doi.org/10.5281/zenodo.21045518)
 
 **Created by [Tatiana Radchenko](https://github.com/Tania-coder)**
 
