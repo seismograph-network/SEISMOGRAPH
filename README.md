@@ -1,8 +1,9 @@
 # SEISMOGRAPH
 
+[![CI](https://github.com/Tania-coder/SEISMOGRAPH/actions/workflows/ci.yml/badge.svg)](https://github.com/Tania-coder/SEISMOGRAPH/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/seismograph-probe.svg)](https://pypi.org/project/seismograph-probe/)
 [![Python](https://img.shields.io/pypi/pyversions/seismograph-probe.svg)](https://pypi.org/project/seismograph-probe/)
-[![Tests](https://img.shields.io/badge/tests-103%20passing-brightgreen.svg)](#test-suite)
+[![Tests](https://img.shields.io/badge/tests-107%20passing-brightgreen.svg)](#test-suite)
 [![Lint](https://img.shields.io/badge/ruff-0%20violations-brightgreen.svg)](https://github.com/astral-sh/ruff)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](#license)
 [![Live Demo](https://img.shields.io/badge/live%20demo-Model%20Weather-8A2BE2.svg)](https://seismograph-weather.onrender.com/dashboard)
@@ -239,7 +240,7 @@ tests/
 ## Test suite
 
 ```
-103 passed, 0 failed
+107 passed, 0 failed
 ruff: 0 violations across all Python files
 ```
 
