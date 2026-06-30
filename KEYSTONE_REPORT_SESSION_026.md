@@ -89,3 +89,80 @@ runs. Recommendation: add a one-line CI job that runs `python -m compileall
 probe engine gateway scripts` on push — it deterministically catches any
 truncation/syntax breakage on a clean checkout, independent of the sandbox
 artifact, and gives a trustworthy green signal the sandbox currently cannot.
+
+---
+
+# ADDENDUM — Session 027 (2026-06-30): first live run + probe hardening
+
+Closes the three "pending" items flagged in §4 above (live run, full-suite
+confirmation, documented-command robustness). Same task arc; same branch
+`seismograph/task-live-probe`.
+
+## A1. What happened
+
+- **First live probe run executed** against a REAL hosted model — Mistral
+  `mistral-small-latest` via `https://api.mistral.ai/v1` (ToS: ✅ green,
+  PROVIDER_TOS_CHECKS row reviewed 2026-06-16). Three canary results
+  returned with real network latencies (638–1280 ms):
+
+  | prompt_id | output_len | json_valid | latency_ms |
+  |---|---|---|---|
+  | v1.0.0-logic | 1 | False | 1280 |
+  | v1.0.0-format | 124 | **True** | 638 |
+  | v1.0.0-refusal | 237 | False | 913 |
+
+- **Privacy invariant held live:** only SHA-256 hash, length, json_valid and
+  latency were printed. No raw model output was displayed, stored, or
+  transmitted. This is the first end-to-end real-model confirmation of the
+  privacy boundary, not just an offline test assertion.
+
+## A2. Hardening applied (commit 9b0779f)
+
+| Change | File | Rationale |
+|---|---|---|
+| `sys.path` bootstrap | `scripts/live_probe.py` | Documented command `python scripts/live_probe.py` now resolves the `probe` package without requiring `PYTHONPATH` (sys.path[0] was scripts/, not repo root). #SG-TRACE REQ-CANARY-024 |
+| Non-ASCII API-key guard | `probe/providers.py` | A pasted non-ASCII placeholder previously crashed deep in urllib with an opaque `UnicodeEncodeError`. Now rejected early with a clear, payload-free `ProviderError`. #SG-TRACE REQ-CANARY-025 |
+| `.gitattributes` (`* text=auto eol=lf`) | repo root | Establishes LF as the canonical EOL, the policy fix for the recurring CRLF-phantom diffs from the NTFS working tree. |
+
+## A3. Verification
+
+- **Full suite on real disk: 119 passed** (`py -3.10 -m pytest -q`) — the
+  S026 baseline of 118 plus one new adversarial test. Confirms the S026 §4
+  "118 expected" item and supersedes it.
+- **New test:** `test_provider_rejects_non_ascii_api_key` (adversarial: a
+  Cyrillic placeholder key is rejected pre-network).
+- **ruff:** clean on all touched files (E302/E402/PEP8).
+- **Bootstrap verified in-sandbox:** `python scripts/live_probe.py` with no
+  `PYTHONPATH` resolves `probe` and reaches the network layer.
+
+## A4. Defect caught and fixed (this addendum)
+
+- **`ProviderError` from the constructor escaped as a traceback (real,
+  fixed):** the first cut of the non-ASCII guard raised inside
+  `OpenAICompatibleProvider.__init__`, but `main()` in `live_probe.py` only
+  wrapped `execute_canary` in its `try/except ProviderError` — so the guard
+  produced an ugly traceback instead of the intended clean message. Fix:
+  provider construction moved inside the same `try`. Re-verified: non-ASCII
+  key now prints `Provider call failed: API key contains non-ASCII
+  characters…` with no traceback.
+
+## A5. Known limitations (honest)
+
+- The generic "is the endpoint reachable? … Ollama" hint still prints on a
+  key-validation failure, where it is not strictly relevant. The primary
+  error message is correct and printed first; left as-is (cosmetic).
+- The Mistral API key used for the run was exposed in the working chat
+  transcript and must be revoked/rotated by Tatiana.
+- Gateway/dashboard emission still not wired — feeding this live
+  `CanaryResult` through the privacy aggregator + crypto signing into
+  `POST /v1/signals` (Track 1b) remains the next step. Unchanged from §4.
+
+## A6. Methodology note
+
+The `compileall` CI job recommended in §6 would also have surfaced the
+`sys.path`/invocation gap earlier: a push-time `python scripts/live_probe.py
+--check-imports` style smoke (import-only, no network) would catch
+script-entrypoint import regressions that the pytest suite misses because
+pytest injects the repo root automatically.
+
+Signed: _________________________  Tatiana — 2026-06-30
