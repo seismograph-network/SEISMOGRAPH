@@ -3,7 +3,7 @@
 [![CI](https://github.com/Tania-coder/SEISMOGRAPH/actions/workflows/ci.yml/badge.svg)](https://github.com/Tania-coder/SEISMOGRAPH/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/seismograph-probe.svg)](https://pypi.org/project/seismograph-probe/)
 [![Python](https://img.shields.io/pypi/pyversions/seismograph-probe.svg)](https://pypi.org/project/seismograph-probe/)
-[![Tests](https://img.shields.io/badge/tests-107%20passing-brightgreen.svg)](#test-suite)
+[![Tests](https://img.shields.io/badge/tests-122%20passing-brightgreen.svg)](#test-suite)
 [![Lint](https://img.shields.io/badge/ruff-0%20violations-brightgreen.svg)](https://github.com/astral-sh/ruff)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](#license)
 [![Live Demo](https://img.shields.io/badge/live%20demo-Model%20Weather-8A2BE2.svg)](https://seismograph-weather.onrender.com/dashboard)
@@ -17,7 +17,9 @@ pip install seismograph-probe   # the probe SDK — Python 3.11+
 
 **▶ Live dashboard:** **[seismograph-weather.onrender.com/dashboard](https://seismograph-weather.onrender.com/dashboard)** — real drift-weather for 4 production models, refreshed live. _(Free host; first load may take ~30s if the instance is asleep.)_
 
-**A federated, privacy-preserving early-warning network for silent LLM API drift.**
+**Your LLM didn't get worse. It changed — and nobody told you.**
+
+Teams build on LLM APIs they don't control. Providers update models silently — same name, same endpoint, different behavior — and prompts that worked yesterday break today, with no announcement and no alert. SEISMOGRAPH is the smoke detector for that risk: a privacy-preserving early-warning network that continuously probes models and tells you the moment one drifts from its baseline — before it costs you a customer.
 
 > Detected the Anthropic Claude 3.5 Sonnet silent degradation on 2025-08-10 --
 > **38 days before the official Sep 17 postmortem** and 19 days before the
@@ -29,6 +31,12 @@ pip install seismograph-probe   # the probe SDK — Python 3.11+
 <p align="center"><em>Live "model weather" — <a href="https://seismograph-weather.onrender.com/dashboard">open the public dashboard</a> (no login).</em></p>
 
 **Documentation:** [Whitepaper (PDF)](docs/SEISMOGRAPH_Whitepaper_v1.pdf) · [Roadmap](ROADMAP.md) · [Security & threat model](SECURITY.md) · [Architecture](SEISMOGRAPH_Architecture.md) · [DOI 10.5281/zenodo.21045518](https://doi.org/10.5281/zenodo.21045518)
+
+---
+
+## Technical overview
+
+SEISMOGRAPH detects **semantic drift** in third-party LLM APIs — behavioral change that emits no latency or uptime signal, so conventional monitoring misses it. A fixed, content-addressed canary suite runs against any OpenAI-compatible endpoint at temperature 0. Each response is reduced to privacy-preserving features — SHA-256 hashes plus ε=2.0 Laplace-DP-noised aggregates; **raw prompts and outputs never leave the probe perimeter**. Every batch is Ed25519-signed, and alerts are gated behind **cross-observer quorum**, so no single noisy probe can raise a false alarm. Built with a Python probe SDK, a FastAPI ingestion gateway, change-point detection (CUSUM + Bayesian online change-point), and full CI (ruff + pytest, 122 tests). Apache-2.0. In backtest, it flagged a major provider's drift **38 days before the public postmortem**.
 
 ---
 
@@ -243,7 +251,7 @@ tests/
 ## Test suite
 
 ```
-107 passed, 0 failed
+122 passed, 0 failed
 ruff: 0 violations across all Python files
 ```
 
