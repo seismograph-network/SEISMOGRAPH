@@ -182,6 +182,84 @@
     .alert-row dt,
     .alert-row dd { color: #fca5a5; font-size: 0.72rem; }
 
+    /* ---- explainer ---- */
+    .explainer {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 2px solid var(--accent);
+      border-radius: 8px;
+      padding: 1.2rem 1.4rem;
+      margin-bottom: 1.5rem;
+    }
+    .explainer-head {
+      display: flex;
+      align-items: baseline;
+      gap: 0.7rem;
+      margin-bottom: 0.7rem;
+      flex-wrap: wrap;
+    }
+    .explainer-head h2 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .explainer-tag {
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      background: rgba(129,140,248,.12);
+      padding: 0.16rem 0.5rem;
+      border-radius: 4px;
+    }
+    .explainer-lead {
+      font-size: 0.86rem;
+      line-height: 1.6;
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+    .explainer-lead strong { color: var(--accent); }
+    .explainer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem 1.6rem;
+      margin-bottom: 1.1rem;
+    }
+    .explainer-item h3 {
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+    .explainer-item p {
+      font-size: 0.82rem;
+      line-height: 1.55;
+      color: var(--text);
+    }
+    .legend {
+      display: grid;
+      gap: 0.6rem;
+      border-top: 1px solid var(--border);
+      padding-top: 1rem;
+    }
+    .legend-row {
+      display: flex;
+      gap: 0.7rem;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      color: var(--text);
+    }
+    .legend-row .dot { margin-top: 0.4rem; }
+    .legend-row strong {
+      font-family: var(--mono);
+      font-size: 0.74rem;
+      letter-spacing: 0.04em;
+    }
+    .legend-row .l-stable strong { color: var(--green); }
+    .legend-row .l-drifting strong { color: var(--red); }
+
     /* ---- footer ---- */
     footer {
       border-top: 1px solid var(--border);
@@ -208,6 +286,46 @@
 </header>
 
 <main>
+  <section class="explainer" aria-label="What this dashboard shows">
+    <div class="explainer-head">
+      <h2>What is this?</h2>
+      <span class="explainer-tag">Plain-language guide</span>
+    </div>
+    <p class="explainer-lead">
+      SEISMOGRAPH is a <strong>privacy-preserving drift detector for LLM APIs</strong>.
+      It runs small, fixed &ldquo;canary&rdquo; prompts against a model on a schedule and
+      watches whether the model&rsquo;s behaviour quietly changes over time.
+    </p>
+    <div class="explainer-grid">
+      <div class="explainer-item">
+        <h3>Why it matters</h3>
+        <p>A provider can silently update a model &mdash; same name, different
+          behaviour &mdash; with no announcement. That can break your prompts
+          overnight. SEISMOGRAPH tells you <em>when</em> it happens, so you know
+          it&rsquo;s the model, not you.</p>
+      </div>
+      <div class="explainer-item">
+        <h3>How to read a card</h3>
+        <p>Each card is one model. The coloured dot and badge show its current
+          status; the numbers are recent behaviour (average answer length and
+          JSON success rate) &mdash; privacy-noised aggregates, never raw text.</p>
+      </div>
+    </div>
+    <div class="legend">
+      <div class="legend-row">
+        <span class="dot dot-stable"></span>
+        <div class="l-stable"><strong>STABLE</strong> &mdash; the model is behaving in
+          line with its established baseline. Nothing unusual; no confirmed drift.</div>
+      </div>
+      <div class="legend-row">
+        <span class="dot dot-drifting"></span>
+        <div class="l-drifting"><strong>DRIFTING</strong> &mdash; several independent
+          probes agree the model&rsquo;s behaviour has shifted from its baseline. A
+          single probe is never enough to raise this &mdash; worth investigating
+          before you rely on its output.</div>
+      </div>
+    </div>
+  </section>
   <div id="status-banner" class="banner banner-error"></div>
   <div id="weather-grid"></div>
 </main>
