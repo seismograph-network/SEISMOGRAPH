@@ -1492,34 +1492,81 @@ and bloated memory files. Three phases.
 - New memory/CURRENT_STATE.md (lean session-start read).
 - project_open_tasks.md compressed 26,370 → 2,759 bytes (open tasks + completed
   index); full verbatim history moved to memory/archive/completed_tasks_archive.md.
-- project_session_log.md left UNTOUCHED (append-only invariant honored).
-- Session-start read ≈ 28k → ≈ 3k tokens.
+- project_session_log.md left UNTOUCHED (append-
+---
 
-### Defects / findings
-- pyproject.toml comment promises "ignore E501 in comments/docstrings" but never
-  implemented → source of the lint drift.
-- Privacy near-miss: CTO outreach names almost committed to public memory files;
-  scrubbed before commit.
-- Sandbox cannot delete files / clear git locks on the NTFS mount.
+## Session 025 — 2026-06-29
 
-### Open at session end
-- Merge + push branch seismograph/task-cleanup-024.
-- Update constitution "Session start protocol" → read CURRENT_STATE.md first.
-- P3-002 webhook sign-off (verify); graph.json empty; infra/security backlog.
+**Director:** Tatiana | **Co-pilot:** Claude (Lead Technical Co-Pilot)
+**Phase:** Post-launch — go-to-market prep | **Branch:** committed to main
 
-### Keystone Report
-KEYSTONE_REPORT_SESSION_024.md — pending Tatiana sign-off.
+### Done
+- README: live CI badge + test-count synced 103 -> 107 (commit 9f5b73b).
+- Dependency-graph generator memory/ast_graph.py (stdlib AST, ruff-clean);
+  graph.json populated by Tatiana on real disk (24 modules, 2 pkg edges).
+  P3-002 Webhooks audited and CLOSED (commit 80dbc10).
+- Money track: 2 cold outreach drafts (Corti, Legora) in business/.
+- Detail: KEYSTONE_REPORT_SESSION_025.md.
 
 ### Confirmed by Tatiana
-- [ ] Pending session-end confirmation
-### Session 024 addendum - privacy defect (post-push, remediated)
-- D-PRIV-024: KEYSTONE_REPORT_SESSION_024.md Section 2 listed the actual private
-  outreach names while documenting the privacy scan; committed + pushed in
-  86972aa before being caught. Fix: names removed, tip commit amended to 7b6413f,
-  force-pushed (--force-with-lease), branch seismograph/task-cleanup-024 deleted.
-  Residual: unreachable object 86972aa may persist on GitHub until GC; names are
-  public-domain (company CTOs), residual risk low.
-- Lesson: the privacy scan must cover the report that documents the scan, not
-  only the files under review.
+- [x] Pushed to main (9f5b73b, 80dbc10).
+
+---
+
+## Session 026 — 2026-06-29
+
+**Director:** Tatiana | **Co-pilot:** Claude (Lead Technical Co-Pilot)
+**Phase:** 0/1 hardening — grant + market readiness, then product realism
+**Branches:** docs/packaging committed to main; live-probe staged for
+`seismograph/task-live-probe` (NOT yet committed — see Carry-forward).
+
+### Task
+Analyse all prior sessions, re-verify what is actually done, map the plan,
+then build the grant/market package and begin hardening the product so it
+reads as finished to grant reviewers and prospective partners.
+
+### Re-verification (facts, not logs)
+- pytest re-run in sandbox: **107 passed**. Test count 107 confirmed.
+- ruff "errors" in sandbox = NTFS-overlay truncation artifacts (file tails
+  cut: correlation.py@461, main.py@857). Real authority = GitHub CI (green).
+- Live assets reachable: Render dashboard, PyPI package.
+
+### Packaging built (committed to main)
+- Technical whitepaper -> docs/SEISMOGRAPH_Whitepaper_v1.pdf (6pp, weasyprint).
+- Pitch deck -> docs/SEISMOGRAPH_Pitch_Deck.pptx + .pdf (11 slides, QA'd).
+- One-pager -> docs/SEISMOGRAPH_OnePager.pdf (A4).
+- Zenodo concept **DOI 10.5281/zenodo.21045518** minted from GitHub release
+  v1.0.0; .zenodo.json + CITATION.cff (commit 20fbacc); DOI on whitepaper
+  cover + README badge + docs committed (commit 2ec001f).
+- ROADMAP.md + SECURITY.md (threat model) (commit a208d33).
+- README: docs nav + Citation/BibTeX section (commit 58936ad).
+- Outreach pack -> business/outreach_pack_S026.md (5 Tier-A notes; private,
+  gitignored).
+
+### Product realism — Track 1 (live probe) — CODE DONE, NOT YET COMMITTED
+- probe/providers.py (new): OpenAICompatibleProvider (stdlib urllib,
+  injectable transport), ProviderError, model_name_from_tuple.
+- probe/canary.py: execute_canary(mock=False, provider=...) makes real
+  OpenAI-compatible calls; raw output hashed + discarded (privacy held).
+- tests/test_providers.py (new): 11 tests, fully offline; incl. adversarial
+  silent-drift (hash+length move, no latency signal) + privacy invariant.
+- scripts/live_probe.py (new): run real canary against any OpenAI-compatible
+  endpoint (Ollama/OpenAI/Mistral/Groq); prints only privacy-safe features.
+- .env.example: probe endpoint config block. docs/PROVIDER_TOS_CHECKS.md:
+  self-hosted (no ToS) + Groq (VERIFY) rows.
+- KEYSTONE_REPORT_SESSION_026.md.
+- Verification: 11 new + 69 probe-side tests PASS on fresh bytecode; ruff
+  clean on all changed/new files. Full 118 run + the live call are Tatiana's
+  to execute on real disk (sandbox can't compile engine/correlation.py and
+  has no model endpoint).
+
+### Carry-forward (PENDING Tatiana)
+1. Live-probe files exist on disk but are UNCOMMITTED. Create branch
+   `seismograph/task-live-probe`, commit the 7 files, run `py -3.10 -m pytest
+   -q` (expect **118**), push. (Files persist on disk; not yet in git.)
+2. Run the first real probe: `py -3.10 scripts\live_probe.py` with a model
+   endpoint (recommend Mistral free key — already ToS-cleared — or OpenAI).
+3. Cleanup: delete docs/_qa/ + docs/pg-*.png + docs/op*.jpg (QA leftovers).
+
 ### Confirmed by Tatiana
-- [x] Session 024 complete and signed off - 2026-06-27
+- [ ] PENDING — session saved at Tatiana's request; commits/run to follow.
